@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NPI Validator — check a 10-digit NPI checksum instantly | MineBilling</title>
+<meta name="description" content="Free NPI validator: checks the 10-digit National Provider Identifier checksum (Luhn with the 80840 prefix) instantly in your browser, with a link to the official NPPES registry for lookups. No sign-up, no data leaves your device.">
+<link rel="canonical" href="https://ototao.github.io/minebilling-site/tools/npi-validator.html">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="../">MineBilling<span class="tld">.</span></a>
+  <nav class="site">
+    <a href="em-calculator.html">E/M calculator</a>
+    <a href="../#free-look">Free scorecard</a>
+  </nav>
+</header>
+<main>
+  <h1>NPI checksum validator</h1>
+  <p class="lede">Paste a 10-digit National Provider Identifier and get an instant
+  checksum verdict. Everything runs in your browser — nothing is sent anywhere.
+  A valid checksum means the number is <em>well-formed</em>, not that it's assigned:
+  confirm assignment in the official
+  <a href="https://npiregistry.cms.hhs.gov/" rel="noopener">NPPES NPI Registry</a>.</p>
+
+  <form class="calc" onsubmit="return false">
+    <div class="field">
+      <label for="npi">NPI (10 digits — dashes and spaces are fine)</label>
+      <input type="text" id="npi" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="e.g. 1234567893" maxlength="20">
+      <p class="hint">The check digit is computed with the Luhn algorithm over the
+      "80840" health-industry prefix plus the first 9 digits, doubling from the
+      rightmost payload digit (CMS NPI check-digit specification).</p>
+    </div>
+  </form>
+
+  <div class="result" id="result" hidden>
+    <h3 id="r-head"></h3>
+    <p id="r-detail"></p>
+  </div>
+
+  <h2>Why claims bounce on NPI errors</h2>
+  <p>A transposed digit produces an NPI that fails the checksum — clearinghouses and
+  payers reject these before adjudication, and the denial often surfaces days later as
+  a batch rejection. Validating at data-entry time is the cheapest denial you'll ever
+  prevent.</p>
+
+  <section class="cta-box">
+    <h2>Denials costing you more than typos?</h2>
+    <p>MineBilling's free scorecard reviews 60 days of your claims and remittances and
+    shows you exactly where the leaks are. <a href="../#free-look">Request the free
+    scorecard</a> — it's yours to keep either way.</p>
+  </section>
+
+  <p class="fineprint">Educational tool, not billing or legal advice. NPI data and the
+  NPPES registry are maintained by CMS.</p>
+</main>
+<footer class="site">
+  <div class="inner">
+    <p>© 2026 MineBilling. General information, not billing, coding, legal, or medical advice.</p>
+  </div>
+</footer>
+<script>
+(function () {
+  var input = document.getElementById("npi");
+  var box = document.getElementById("result");
+  var head = document.getElementById("r-head");
+  var detail = document.getElementById("r-detail");
+
+  function validNpi(raw) {
+    var n = (raw || "").replace(/\D/g, "");
+    if (n.length !== 10) return { ok: false, why: "length", digits: n.length };
+    var payload = "80840" + n.slice(0, 9);
+    var total = 0;
+    var rev = payload.split("").reverse();
+    for (var i = 0; i < rev.length; i++) {
+      var d = +rev[i];
+      if (i % 2 === 0) { d *= 2; if (d > 9) d -= 9; }
+      total += d;
+    }
+    var check = (10 - (total % 10)) % 10;
+    return { ok: check === +n[9], why: "checksum", expected: check, got: +n[9] };
+  }
+
+  input.addEventListener("input", function () {
+    var raw = input.value;
+    var digits = raw.replace(/\D/g, "");
+    if (!digits.length) { box.hidden = true; return; }
+    box.hidden = false;
+    var r = validNpi(raw);
+    if (r.why === "length") {
+      head.textContent = digits.length < 10 ? "Keep typing — " + digits.length + " of 10 digits" : "Too many digits (" + digits.length + ")";
+      detail.textContent = "An NPI is exactly 10 digits.";
+    } else if (r.ok) {
+      head.textContent = "✓ Valid checksum";
+      detail.textContent = "The check digit is consistent. Confirm the NPI is actually assigned in the NPPES registry (link above).";
+    } else {
+      head.textContent = "✗ Invalid checksum";
+      detail.textContent = "The last digit should be " + r.expected + " for these first 9 digits, but is " + r.got + ". A digit is likely mistyped or transposed.";
+    }
+  });
+})();
+</script>
+</body>
+</html>
