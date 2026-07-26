@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2021 E/M Office Visit Level Calculator (99202–99215) — by time or MDM | MineBilling</title>
+<meta name="description" content="Free calculator for 2021 office/outpatient E/M levels 99202–99215: enter total time on the date of the encounter or pick MDM elements (problems, data, risk) and get the supported code, with AMA/CMS thresholds and prolonged-service rules (99417, G2212) cited inline.">
+<link rel="canonical" href="https://ototao.github.io/minebilling-site/tools/em-calculator.html">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="../">MineBilling<span class="tld">.</span></a>
+  <nav class="site">
+    <a href="../#free-look">Free scorecard</a>
+  </nav>
+</header>
+<main>
+  <h1>2021 E/M office-visit level calculator</h1>
+  <p class="lede">Office/outpatient codes 99202–99215 under the AMA's 2021 rules: select
+  the level by <strong>total time on the date of the encounter</strong> or by
+  <strong>medical decision making</strong> (2 of 3 elements) — whichever your
+  documentation supports. Thresholds below are the AMA's, cited at the bottom.
+  Educational use only; no patient data enters this page (everything runs in your browser).</p>
+
+  <form class="calc" id="calc">
+    <div class="field">
+      <label for="ptype">Patient type</label>
+      <select id="ptype">
+        <option value="est">Established patient (99212–99215)</option>
+        <option value="new">New patient (99202–99205)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="minutes">Total time on the date of the encounter (minutes) — optional</label>
+      <input type="number" id="minutes" min="0" max="300" inputmode="numeric" placeholder="e.g. 32">
+      <p class="hint">Count the physician's/QHP's own face-to-face and non-face-to-face
+      time on that date. Excludes clinical-staff time, separately reported services,
+      travel, and general teaching.</p>
+    </div>
+
+    <fieldset>
+      <legend>Medical decision making — optional</legend>
+      <div class="field">
+        <label for="problems">Number and complexity of problems addressed</label>
+        <select id="problems">
+          <option value="">— not assessed —</option>
+          <option value="0">1 self-limited or minor problem</option>
+          <option value="1">2+ self-limited/minor · OR 1 stable chronic illness · OR 1 acute uncomplicated illness/injury</option>
+          <option value="2">1+ chronic w/ exacerbation, progression, or treatment side effects · OR 2+ stable chronic · OR undiagnosed new problem w/ uncertain prognosis · OR acute illness w/ systemic symptoms · OR acute complicated injury</option>
+          <option value="3">Severe exacerbation/progression · OR illness or injury posing a threat to life or bodily function (see the AMA grid for full wording)</option>
+        </select>
+        <p class="hint">Only problems addressed at this encounter count. A stable chronic
+        illness means at treatment goal; "uncontrolled" and "controlled" diabetes are the
+        same single condition.</p>
+      </div>
+      <div class="field">
+        <label for="data">Amount and complexity of data reviewed and analyzed</label>
+        <select id="data">
+          <option value="">— not assessed —</option>
+          <option value="0">Minimal or none</option>
+          <option value="1">Limited: any 2 of (external note reviewed per unique source · each unique test result reviewed · each unique test ordered) — OR an independent historian</option>
+          <option value="2">Moderate: any 3 of the above incl. historian as one item · OR independent interpretation of a test · OR discussion of management/test with an external physician or appropriate source</option>
+          <option value="3">Extensive: at least 2 of the 3 Moderate categories</option>
+        </select>
+        <p class="hint">A lab panel (e.g., basic metabolic panel) is a single test; serial
+        results of one test are one test; pulse oximetry doesn't count as a test.</p>
+      </div>
+      <div class="field">
+        <label for="risk">Risk of complications / morbidity of patient management</label>
+        <select id="risk">
+          <option value="">— not assessed —</option>
+          <option value="0">Minimal risk</option>
+          <option value="1">Low risk</option>
+          <option value="2">Moderate: e.g., prescription drug management · minor surgery w/ identified risk factors · elective major surgery w/o risk factors · diagnosis/treatment limited by social determinants</option>
+          <option value="3">High: e.g., decision regarding hospitalization · emergency major surgery · drug therapy requiring intensive toxicity monitoring · DNR / de-escalation decisions</option>
+        </select>
+        <p class="hint">Risk means management decisions at this encounter — including
+        options considered but not selected after shared decision making. A history of a
+        past admission is not a risk element.</p>
+      </div>
+    </fieldset>
+  </form>
+
+  <div class="result" id="result" hidden>
+    <h3 id="r-head"></h3>
+    <p id="r-time"></p>
+    <p id="r-mdm"></p>
+    <p id="r-note" class="muted"></p>
+  </div>
+
+  <h2>The 2021 time bands</h2>
+  <p>New patient: <span class="code">99202</span> 15–29 · <span class="code">99203</span> 30–44 ·
+  <span class="code">99204</span> 45–59 · <span class="code">99205</span> 60–74 minutes.<br>
+  Established: <span class="code">99212</span> 10–19 · <span class="code">99213</span> 20–29 ·
+  <span class="code">99214</span> 30–39 · <span class="code">99215</span> 40–54 minutes.</p>
+  <p>Beyond the top band, prolonged services differ by payer: AMA <span class="code">99417</span>
+  begins at 75 (new) / 55 (established) minutes; Medicare's <span class="code">G2212</span>
+  begins only at 89 / 69 minutes (CMS CY2021 PFS final rule).</p>
+
+  <section class="cta-box">
+    <h2>Coding below what your documentation supports? Above it?</h2>
+    <p>Either direction costs you — one in revenue, the other in audit exposure. MineBilling's
+    free scorecard reviews 60 days of your claims against your documentation and shows you
+    exactly where you stand. <a href="../#free-look">Request the free scorecard</a>.</p>
+  </section>
+
+  <h2>Sources</h2>
+  <p class="fineprint">
+    AMA, <a href="https://www.ama-assn.org/system/files/2023-e-m-descriptors-guidelines.pdf" rel="noopener">CPT E/M Code and Guideline Changes (descriptors &amp; guidelines PDF)</a> ·
+    AMA, <a href="https://www.ama-assn.org/system/files/2019-06/cpt-revised-mdm-grid.pdf" rel="noopener">revised MDM grid</a> ·
+    AAFP, <a href="https://www.aafp.org/practice-operations/billing-and-coding/evaluation-management/time-and-medical-decision-making-levels-evaluation-and-management" rel="noopener">Time and MDM levels summary</a>.
+    This calculator is educational only and is not billing, coding, or legal advice; payer
+    policies vary and control. CPT® is a registered trademark of the American Medical Association.
+  </p>
+</main>
+<footer class="site">
+  <div class="inner">
+    <p>© 2026 MineBilling. General information, not billing, coding, legal, or medical advice.</p>
+  </div>
+</footer>
+<script>
+(function () {
+  var NEW_BANDS = [["99202",15,29],["99203",30,44],["99204",45,59],["99205",60,74]];
+  var EST_BANDS = [["99212",10,19],["99213",20,29],["99214",30,39],["99215",40,54]];
+  var MDM_CODE = { new: ["99202","99203","99204","99205"], est: ["99212","99213","99214","99215"] };
+  var LEVELS = ["straightforward","low","moderate","high"];
+
+  var els = {};
+  ["ptype","minutes","problems","data","risk","result","r-head","r-time","r-mdm","r-note"]
+    .forEach(function (id) { els[id] = document.getElementById(id); });
+
+  function timeCode(ptype, m) {
+    var bands = ptype === "new" ? NEW_BANDS : EST_BANDS;
+    if (m < bands[0][1]) return { below: true, min: bands[0][1] };
+    for (var i = 0; i < bands.length; i++)
+      if (m >= bands[i][1] && m <= bands[i][2]) return { code: bands[i][0] };
+    // beyond top band
+    var amaStart = ptype === "new" ? 75 : 55;
+    var cmsStart = ptype === "new" ? 89 : 69;
+    return { code: bands[3][0], prolonged: true, amaStart: amaStart, cmsStart: cmsStart, ama: m >= amaStart, cms: m >= cmsStart };
+  }
+
+  function mdmLevel(p, d, r) {
+    var v = [p, d, r].slice().sort(function (a, b) { return a - b; });
+    return v[1]; // 2-of-3 = median
+  }
+
+  function update() {
+    var ptype = els.ptype.value;
+    var m = parseInt(els.minutes.value, 10);
+    var hasTime = !isNaN(m) && m > 0;
+    var p = els.problems.value, d = els.data.value, r = els.risk.value;
+    var hasMdm = p !== "" && d !== "" && r !== "";
+
+    if (!hasTime && !hasMdm) { els.result.hidden = true; return; }
+    els.result.hidden = false;
+
+    var timeTxt = "", mdmTxt = "", note = "", codes = [];
+
+    if (hasTime) {
+      var t = timeCode(ptype, m);
+      if (t.below) {
+        timeTxt = "By time: " + m + " minutes is below the " + t.min + "-minute minimum for time-based selection — select on MDM instead.";
+      } else {
+        codes.push(t.code);
+        timeTxt = "By time: " + m + " minutes supports " + t.code + ".";
+        if (t.prolonged) {
+          timeTxt += " That's beyond the top band.";
+          note = "Prolonged services: AMA 99417 applies from " + t.amaStart + " minutes (" + (t.ama ? "met" : "not met") + " here); Medicare G2212 only from " + t.cmsStart + " minutes (" + (t.cms ? "met" : "not met") + " here). Payer policy controls.";
+        }
+      }
+    }
+    if (hasMdm) {
+      var lvl = mdmLevel(+p, +d, +r);
+      var c = MDM_CODE[ptype][lvl];
+      codes.push(c);
+      mdmTxt = "By MDM: 2 of 3 elements support " + LEVELS[lvl] + " → " + c + ".";
+    }
+
+    var head;
+    if (codes.length === 2 && codes[0] !== codes[1]) {
+      head = "Supported: " + codes[0] + " (time) or " + codes[1] + " (MDM) — you may select on either basis; document the one you use.";
+    } else if (codes.length >= 1) {
+      head = "Supported code: " + codes[0];
+    } else {
+      head = "Select on MDM (time below minimum).";
+    }
+    els["r-head"].textContent = head;
+    els["r-time"].textContent = timeTxt;
+    els["r-mdm"].textContent = mdmTxt;
+    els["r-note"].textContent = note;
+  }
+
+  ["ptype","minutes","problems","data","risk"].forEach(function (id) {
+    els[id].addEventListener("input", update);
+    els[id].addEventListener("change", update);
+  });
+})();
+</script>
+</body>
+</html>
