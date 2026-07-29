@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E/M Visit Mix Self-Check (99202–99215) — see your own distribution | MineBilling</title>
+<meta name="description" content="Free E/M visit-mix tool: enter your office-visit counts (99202–99205, 99211–99215) and see your percentage distribution as a bar chart, plus the shift from an earlier period. Optional CMS Medicare fee-for-service reference with its year, population and caveats stated. No targets, no dollar claims, nothing leaves your browser.">
+<link rel="canonical" href="https://ototao.github.io/minebilling-site/tools/em-mix.html">
+<link rel="stylesheet" href="../style.css">
+<style>
+  .mixwrap { overflow-x: auto; margin: 0 0 .4rem; }
+  table.mix { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .92rem; }
+  table.mix th, table.mix td { text-align: right; padding: .45rem .55rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table.mix th:first-child, table.mix td:first-child { text-align: left; }
+  table.mix th { font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); font-weight: 600; vertical-align: bottom; }
+  table.mix tbody tr.excluded td, table.mix tbody tr.excluded th { color: var(--ink-2); }
+  td.barcell { width: 40%; min-width: 150px; }
+  .bar { background: var(--line); border-radius: 4px; height: .8rem; width: 100%; overflow: hidden; }
+  .bar + .bar { margin-top: 2px; height: .45rem; }
+  .bar > span { display: block; height: 100%; width: 0; background: var(--teal); border-radius: 4px; }
+  .bar.ref > span { background: var(--gold); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
+  .legend { font-size: .78rem; color: var(--ink-2); display: flex; gap: 1.2rem; flex-wrap: wrap; margin: .1rem 0 1.4rem; }
+  .legend span::before { content: ""; display: inline-block; width: .7rem; height: .7rem; border-radius: 2px; margin-right: .35rem; vertical-align: baseline; }
+  .legend .k-you::before { background: var(--teal); }
+  .legend .k-ref::before { background: var(--gold); }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.2rem 0; }
+  .panel h3 { font-size: .98rem; }
+  .panel ul { margin: .5rem 0 0; padding-left: 1.1rem; }
+  .panel li { font-size: .84rem; color: var(--ink-2); margin-bottom: .4rem; max-width: 72ch; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
+  .countrow { display: grid; grid-template-columns: 5.6rem 1fr 1fr; gap: .5rem; align-items: center; margin-bottom: .45rem; }
+  .countrow label { font-size: .9rem; }
+  .countrow input { width: 100%; }
+  .counthead { display: grid; grid-template-columns: 5.6rem 1fr 1fr; gap: .5rem; font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); font-weight: 600; margin-bottom: .35rem; }
+  .shape { margin: .2rem 0 1.6rem; font-size: .95rem; }
+  .nodata { color: var(--ink-2); font-size: .92rem; }
+  table.mix th[scope="row"] { text-align: left; font-size: .92rem; text-transform: none;
+    letter-spacing: 0; color: inherit; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+</style>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="../">MineBilling<span class="tld">.</span></a>
+  <nav class="site">
+    <a href="em-calculator.html">E/M calculator</a>
+    <a href="../#free-look">Free scorecard</a>
+  </nav>
+</header>
+<main>
+  <h1>E/M visit-mix self-check</h1>
+  <p class="lede">Enter how many office visits you billed at each level and see your own
+  percentage mix as a bar chart — plus, if you enter a second period, how the mix moved.
+  Everything runs in your browser; no counts leave your device and no patient data is
+  involved. This tool describes your distribution. It does not tell you what your
+  distribution should be, and it never puts a dollar figure on a difference.</p>
+
+  <p><strong>The level of a visit is determined by the documentation</strong> — total time
+  on the date of the encounter, or medical decision making — not by where a clinic sits in
+  a distribution. For the actual rules and thresholds, use the
+  <a href="em-calculator.html">2021 E/M office-visit level calculator</a>.</p>
+
+  <form class="calc" id="mixform" onsubmit="return false" style="max-width:760px">
+    <div class="cols">
+      <fieldset>
+        <legend>Established patient</legend>
+        <div class="counthead"><span>Code</span><span>This period</span><span>Earlier period</span></div>
+        <div id="est-inputs"></div>
+      </fieldset>
+      <fieldset>
+        <legend>New patient</legend>
+        <div class="counthead"><span>Code</span><span>This period</span><span>Earlier period</span></div>
+        <div id="new-inputs"></div>
+      </fieldset>
+    </div>
+
+    <div class="field">
+      <label for="denom">Established-visit denominator</label>
+      <select id="denom">
+        <option value="all">99211–99215 (all established office visits)</option>
+        <option value="ex211">99212–99215 (exclude 99211)</option>
+      </select>
+      <p class="hint">99211 is a minimal / clinical-staff visit whose volume is driven by
+      practice model rather than documentation level, so including or excluding it moves
+      every other share. Whichever you pick is stated on the output — say which one you
+      used if you share the numbers.</p>
+    </div>
+
+    <div class="field">
+      <label for="bench">Optional reference distribution</label>
+      <select id="bench">
+        <option value="">— none (default) —</option>
+      </select>
+      <p class="hint">This is the Medicare <em>provider specialty carried on the claim</em>,
+      not your clinic's service line. If your visits are billed under NP or PA, the family-practice
+      row is not your comparison. If none of these match how you bill, leave this on “none” —
+      substituting a neighbouring specialty would manufacture a difference out of nothing.</p>
+    </div>
+  </form>
+
+  <div id="out">
+    <h2>Established patient visits</h2>
+    <p class="shape" id="est-shape" aria-live="polite"></p>
+    <div class="mixwrap"><table class="mix" id="est-table"></table></div>
+    <p class="legend" id="est-legend"></p>
+
+    <h2>New patient visits</h2>
+    <p class="shape" id="new-shape" aria-live="polite"></p>
+    <div class="mixwrap"><table class="mix" id="new-table"></table></div>
+    <p class="legend" id="new-legend"></p>
+  </div>
+
+  <div class="panel" id="benchpanel" hidden>
+    <h3 id="bench-head"></h3>
+    <p class="hint" id="bench-frame">Differences are worth understanding, not correcting.
+    Payer mix, panel acuity, visit-length policy and practice model all move a distribution
+    for reasons that have nothing to do with coding accuracy. A difference here is not
+    evidence of over- or under-coding, matching the reference is not compliance, and no
+    code should ever be changed because of it — only the documentation determines the level.</p>
+    <p class="hint"><strong>Year:</strong> <span id="bench-year"></span> ·
+    <strong>Specialty:</strong> <span id="bench-spec"></span></p>
+    <p class="hint"><strong>Population:</strong> <span id="bench-pop"></span></p>
+    <p class="hint"><strong>Source:</strong> <a id="bench-url" rel="noopener" href="#"></a></p>
+    <p class="hint" style="margin-top:.9rem"><strong>Printed on the CMS file itself — these
+    two statements, and only these two, are CMS's own words, quoted verbatim:</strong></p>
+    <ul id="bench-cms"></ul>
+    <p class="hint" style="margin-top:.9rem"><strong>Limits of this comparison — our wording,
+    not CMS text. CMS publishes the counts; it does not publish an interpretation, so
+    everything below is ours. Read it before using the comparison for anything:</strong></p>
+    <ul id="bench-caveats"></ul>
+    <ul id="bench-notes"></ul>
+  </div>
+
+  <h2>What this tool deliberately does not do</h2>
+  <p>Search results for “E/M visit mix” are dominated by material whose implicit message is
+  that a mix weighted toward higher levels is a better mix. We won't say that, because it
+  isn't a coding rule — it's a sales argument.</p>
+  <ul>
+    <li class="hint">No target distribution, no “ideal” curve, and no scoring of your mix.</li>
+    <li class="hint">No dollar amount attached to any difference. Converting a percentage
+    gap into “money you're leaving on the table” assumes the higher level was documented,
+    which this tool has no way to know and neither does anyone else selling you that number.</li>
+    <li class="hint">No external comparison at all unless you ask for one, and when you do,
+    its year, payer population, specialty and published caveats appear next to it.</li>
+    <li class="hint">A clinic that codes conservatively when documentation is ambiguous will
+    tend to sit below a national curve. That is a defensible place to be, not a defect to
+    fix.</li>
+  </ul>
+  <p>What is informative without asserting any outside authority is your own trend: the same
+  clinic, two periods. Comparing yourself to yourself removes the payer-mix, billing-specialty
+  and single-year problems entirely, because both numbers come from the same place — which is
+  why it's the default here. It is not a complete answer either: a mix can move because the
+  panel changed, because a provider joined or left, or because a different set of patients
+  came through the door. A shift tells you where to look; it does not tell you why.</p>
+
+  <section class="cta-box">
+    <h2>Want someone to look at the documentation behind the mix?</h2>
+    <p>A distribution can only raise the question; the chart itself never answers it —
+    only the documentation behind those visits can. MineBilling's
+    free scorecard reviews 60 days of your billed claims and remittances — after we sign a
+    Business Associate Agreement, and we take no patient data before that — and returns a
+    written scorecard of what's being denied and why, and where coding sits relative to
+    documentation. <a href="../#free-look">Request the free scorecard</a>; it's yours to
+    keep either way.</p>
+  </section>
+
+  <h2>Sources and method</h2>
+  <p class="fineprint">
+    Percentages are computed in your browser as each code's count divided by the total for
+    that code family, so shares within a family sum to 100% (displayed values are rounded to
+    one decimal and may not add to exactly 100). Shifts are simple differences in percentage
+    points between the two periods you entered.
+    The optional reference distribution is CMS,
+    <a href="https://www.cms.gov/data-research/statistics-trends-reports/medicare-fee-service-parts-b/medicare-utilization-part-b/evaluation-management-em-codes-specialty-reports" rel="noopener">Medicare
+    Part B Physician/Supplier National Data — Evaluation and Management Codes by Specialty</a>
+    (CY2024 file), computed as each code's ALLOWED SERVICES divided by the family total;
+    cells CMS suppresses (fewer than 11 allowed services) are omitted, never estimated.
+    99201 was deleted effective 2021-01-01 (CMS Pub 100-04 Transmittal 10505, CR 12071), so
+    the new-patient family is 99202–99205.
+    Educational tool, not billing, coding, or legal advice; payer policies vary and control.
+    CPT® is a registered trademark of the American Medical Association.
+  </p>
+</main>
+<footer class="site">
+  <div class="inner">
+    <p>© 2026 MineBilling. General information, not billing, coding, legal, or medical advice.
+    CPT® is a registered trademark of the American Medical Association.</p>
+  </div>
+</footer>
+
+<script>
+/* ==BEGIN CORE== pure logic, no DOM. Mirrored by the node test in the scratchpad. */
+var EM_MIX_CORE = (function () {
+  var EST_CODES = ["99211", "99212", "99213", "99214", "99215"];
+  var EST_CODES_EX211 = ["99212", "99213", "99214", "99215"];
+  var NEW_CODES = ["99202", "99203", "99204", "99205"];
+
+  /* Reference distributions, transcribed verbatim from the CMS CY2024
+     "Evaluation and Management Codes by Specialty" file. Percentages are
+     count / family total as published; no imputation. */
+  var BENCH = {
+    source: {
+      name: "CMS, Medicare Part B Physician/Supplier National Data CY2024 — Evaluation and Management Codes by Specialty",
+      url: "https://www.cms.gov/files/document/cy-2024-evaluation-management-em-codes-specialty.xlsx",
+      year: "2024",
+      population: "Medicare fee-for-service (Original Medicare) Part B allowed services, national, calendar year 2024",
+      file_sha256: "8ec0e2d211d0c567fce81ae8dd70720b25f2e982ba4fbd642f4d6a346137bfe9",
+      /* The ONLY text CMS itself prints on this file, byte-for-byte from the workbook's
+         shared-string table (file sha256 above). Everything in `caveats` below is our own
+         analysis of the data, NOT a CMS quote — the two lists are rendered separately and
+         labelled separately so the distinction survives any later copy edit. */
+      cms_verbatim: [
+        "Codes Copyrighted By American Medical Association",
+        "Data have been screened to meet CMS privacy guidelines(Allowed Services below 11 are not included on the report)"
+      ],
+      /* OUR wording. Traceable to em_benchmarks.json source.caveats, not to CMS. */
+      caveats: [
+        "Population is Medicare fee-for-service Part B ONLY. It is not all-payer. A clinic with commercial, Medicaid or Medicare Advantage volume will differ for reasons that have nothing to do with coding accuracy.",
+        "The column is labeled ALLOWED SERVICES by CMS. It is a count of allowed service line items, not distinct patients, not encounters and not submitted claims.",
+        "CMS suppresses any code+specialty cell with fewer than 11 allowed services (stated on the file itself). Suppressed cells are omitted here, never imputed.",
+        "This is a DESCRIPTIVE national distribution, not a target, a norm, a payer policy, or a threshold. Deviation is a prompt to look at documentation; it is not evidence of over- or under-coding, and matching it is not compliance.",
+        "Patient acuity, panel composition, visit length policy, chronic-condition burden and site of service all legitimately move a clinic's distribution. Medicare eligibility is age 65+, ESRD or long-term disability, so this population is not the same as an all-ages commercial panel.",
+        "CPT is a registered trademark of the American Medical Association. Code descriptors are copyright AMA; CMS states this on the source file."
+      ]
+    },
+    /* Our own wording, kept separate from the verbatim caveats above and labelled as ours
+       on the page so nothing we wrote can be mistaken for CMS text. */
+    notes: [
+      "The SPECIALTY column is the Medicare provider specialty carried on the claim, not your clinic's service line. If your visits are billed under NP or PA, the family-practice row is not your comparison — pick the matching row, or leave the reference off.",
+      "Including or excluding 99211 changes every other share. The denominator you chose above is applied to the reference as well, so both sides use the same one. Say which you used if you share these numbers.",
+      "Drift check, same CMS series, Family Practice, established visits: the 99214 share was 57.39% in CY2021 and 62.37% in CY2024; the 99213 share was 33.87% then and 30.06% now. A single year is a snapshot, not a fixed norm. (CY2021 file: https://www.cms.gov/files/document/cy-2021-evaluation-and-management-em-codes-specialty.pdf)"
+    ],
+    specialties: [
+      { key: "FAMILY PRACTICE", label: "Family Practice",
+        established: { "99211": 1.17, "99212": 1.6, "99213": 30.06, "99214": 62.37, "99215": 4.8 },
+        established_excluding_99211: { "99212": 1.62, "99213": 30.42, "99214": 63.1, "99215": 4.86 },
+        "new": { "99202": 2.94, "99203": 36.62, "99204": 53.85, "99205": 6.6 } },
+      { key: "INTERNAL MEDICINE", label: "Internal Medicine",
+        established: { "99211": 1.09, "99212": 1.86, "99213": 28.03, "99214": 61.75, "99215": 7.26 },
+        established_excluding_99211: { "99212": 1.88, "99213": 28.34, "99214": 62.43, "99215": 7.35 },
+        "new": { "99202": 1.8, "99203": 21.2, "99204": 58.57, "99205": 18.42 } },
+      { key: "GENERAL PRACTICE", label: "General Practice",
+        established: { "99211": 2.57, "99212": 3.58, "99213": 43.31, "99214": 45.64, "99215": 4.91 },
+        established_excluding_99211: { "99212": 3.67, "99213": 44.45, "99214": 46.84, "99215": 5.03 },
+        "new": { "99202": 5.47, "99203": 37.09, "99204": 46.38, "99205": 11.06 } },
+      { key: "GERIATRIC MEDICINE", label: "Geriatric Medicine",
+        established: { "99211": 1.05, "99212": 1.56, "99213": 17.59, "99214": 58.98, "99215": 20.82 },
+        established_excluding_99211: { "99212": 1.58, "99213": 17.78, "99214": 59.6, "99215": 21.04 },
+        "new": { "99202": 0.89, "99203": 7.49, "99204": 32.67, "99205": 58.95 } },
+      { key: "NURSE PRACTITIONER", label: "Nurse Practitioner",
+        established: { "99211": 0.54, "99212": 3.09, "99213": 35.69, "99214": 54.34, "99215": 6.34 },
+        established_excluding_99211: { "99212": 3.11, "99213": 35.88, "99214": 54.64, "99215": 6.37 },
+        "new": { "99202": 4.35, "99203": 42.3, "99204": 45.49, "99205": 7.87 } },
+      { key: "PHYSICIAN ASSISTANT", label: "Physician Assistant",
+        established: { "99211": 0.3, "99212": 4.51, "99213": 47.35, "99214": 43.75, "99215": 4.09 },
+        established_excluding_99211: { "99212": 4.53, "99213": 47.49, "99214": 43.88, "99215": 4.1 },
+        "new": { "99202": 4.79, "99203": 52.02, "99204": 39.21, "99205": 3.97 } }
+    ]
+  };
+
+  function codesFor(family, denom) {
+    if (family === "new") return NEW_CODES.slice();
+    return denom === "ex211" ? EST_CODES_EX211.slice() : EST_CODES.slice();
+  }
+
+  function cleanCount(v) {
+    var n = typeof v === "number" ? v : parseFloat(v);
+    if (typeof n !== "number" || !isFinite(n) || n <= 0) return 0;
+    return Math.floor(n);
+  }
+
+  /* counts: {code: number|string}. codes: the denominator's code list.
+     Returns pct = null for every code when the total is zero — never NaN, never 0%. */
+  function distribution(counts, codes) {
+    var clean = {}, total = 0, i, c;
+    for (i = 0; i < codes.length; i++) {
+      c = codes[i];
+      clean[c] = cleanCount(counts ? counts[c] : 0);
+      total += clean[c];
+    }
+    var pct = {};
+    for (i = 0; i < codes.length; i++) {
+      pct[codes[i]] = total > 0 ? (clean[codes[i]] / total) * 100 : null;
+    }
+    return { codes: codes.slice(), counts: clean, total: total, pct: pct, available: total > 0 };
+  }
+
+  /* Percentage-point change, current minus earlier. Null unless BOTH periods have volume. */
+  function shift(current, earlier) {
+    if (!current || !earlier || !current.available || !earlier.available) return null;
+    var out = {}, i, c;
+    for (i = 0; i < current.codes.length; i++) {
+      c = current.codes[i];
+      out[c] = (earlier.pct[c] === null || current.pct[c] === null) ? null : current.pct[c] - earlier.pct[c];
+    }
+    return out;
+  }
+
+  /* Percentage-point difference from a reference distribution. Null when there is no
+     reference selected, no clinic volume, or the reference omits that code. */
+  function benchDelta(dist, ref) {
+    if (!ref || !dist || !dist.available) return null;
+    var out = {}, i, c;
+    for (i = 0; i < dist.codes.length; i++) {
+      c = dist.codes[i];
+      out[c] = (typeof ref[c] === "number" && dist.pct[c] !== null) ? dist.pct[c] - ref[c] : null;
+    }
+    return out;
+  }
+
+  function specialty(key) {
+    for (var i = 0; i < BENCH.specialties.length; i++) {
+      if (BENCH.specialties[i].key === key) return BENCH.specialties[i];
+    }
+    return null;
+  }
+
+  /* The reference numbers for the family + denominator actually in use. */
+  function refDist(key, family, denom) {
+    var s = specialty(key);
+    if (!s) return null;
+    if (family === "new") return s["new"];
+    return denom === "ex211" ? s.established_excluding_99211 : s.established;
+  }
+
+  function round1(x) { return Math.round(x * 10) / 10; }
+
+  function fmtPct(x) { return x === null || x === undefined ? "—" : round1(x).toFixed(1) + "%"; }
+
+  function fmtSigned(x) {
+    if (x === null || x === undefined) return "—";
+    var r = round1(x);
+    if (r === 0) return "0.0 pts";
+    return (r > 0 ? "+" : "−") + Math.abs(r).toFixed(1) + " pts";
+  }
+
+  function fmtInt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+
+  function ranked(dist) {
+    return dist.codes.slice().sort(function (a, b) {
+      var d = dist.pct[b] - dist.pct[a];
+      return d !== 0 ? d : (a < b ? -1 : 1);
+    });
+  }
+
+  /* Neutral, factual description. No judgement words, no targets, no dollars. */
+  function describeShape(dist, sh, familyLabel) {
+    if (!dist.available) {
+      return "Enter " + familyLabel + " visit counts above to see the mix. Nothing is shown while the total is zero.";
+    }
+    var order = ranked(dist);
+    var top = order[0];
+    var parts = [];
+    parts.push(fmtInt(dist.total) + " " + familyLabel + " visits entered. Largest share: " +
+      top + " at " + fmtPct(dist.pct[top]) + ".");
+    if (order.length > 1) {
+      parts.push("The two most-used codes (" + top + " and " + order[1] + ") are " +
+        fmtPct(dist.pct[top] + dist.pct[order[1]]) + " of the family.");
+    }
+    var zeros = dist.codes.filter(function (c) { return dist.counts[c] === 0; });
+    if (zeros.length) parts.push("No volume entered for " + zeros.join(", ") + ".");
+    if (sh) {
+      var moved = dist.codes.slice().filter(function (c) { return sh[c] !== null; })
+        .sort(function (a, b) {
+          var d = Math.abs(sh[b]) - Math.abs(sh[a]);
+          return d !== 0 ? d : (a < b ? -1 : 1);
+        });
+      if (moved.length && round1(Math.abs(sh[moved[0]])) !== 0) {
+        parts.push("Versus the earlier period, the largest move is " + moved[0] + ", " +
+          fmtSigned(sh[moved[0]]) + ".");
+      } else if (moved.length) {
+        parts.push("Versus the earlier period, the mix is unchanged to one decimal place.");
+      }
+    }
+    return parts.join(" ");
+  }
+
+  return {
+    EST_CODES: EST_CODES, EST_CODES_EX211: EST_CODES_EX211, NEW_CODES: NEW_CODES,
+    BENCH: BENCH, codesFor: codesFor, cleanCount: cleanCount, distribution: distribution,
+    shift: shift, benchDelta: benchDelta, specialty: specialty, refDist: refDist,
+    round1: round1, fmtPct: fmtPct, fmtSigned: fmtSigned, fmtInt: fmtInt,
+    ranked: ranked, describeShape: describeShape
+  };
+})();
+/* ==END CORE== */
+</script>
+
+<script>
+(function () {
+  var C = EM_MIX_CORE;
+  var doc = document;
+
+  function el(tag, cls, text) {
+    var n = doc.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = text;
+    return n;
+  }
+
+  /* ---- build the count inputs ---- */
+  function buildInputs(hostId, codes, prefix) {
+    var host = doc.getElementById(hostId);
+    codes.forEach(function (code) {
+      var row = el("div", "countrow");
+      var lab = el("label", null, code);
+      lab.className = "mono";
+      lab.setAttribute("for", prefix + "-cur-" + code);
+      row.appendChild(lab);
+      ["cur", "pri"].forEach(function (per) {
+        var inp = doc.createElement("input");
+        inp.type = "number";
+        inp.min = "0";
+        inp.step = "1";
+        inp.inputMode = "numeric";
+        inp.id = prefix + "-" + per + "-" + code;
+        inp.setAttribute("aria-label", code + (per === "cur" ? " this period" : " earlier period"));
+        inp.placeholder = per === "cur" ? "0" : "optional";
+        inp.addEventListener("input", update);
+        row.appendChild(inp);
+      });
+      host.appendChild(row);
+    });
+  }
+  buildInputs("est-inputs", C.EST_CODES, "est");
+  buildInputs("new-inputs", C.NEW_CODES, "new");
+
+  /* ---- benchmark picker ---- */
+  var benchSel = doc.getElementById("bench");
+  C.BENCH.specialties.forEach(function (s) {
+    var o = doc.createElement("option");
+    o.value = s.key;
+    o.textContent = s.label + " (Medicare FFS, CY" + C.BENCH.source.year + ")";
+    benchSel.appendChild(o);
+  });
+
+  function readCounts(prefix, per, codes) {
+    var out = {};
+    codes.forEach(function (c) {
+      var n = doc.getElementById(prefix + "-" + per + "-" + c);
+      out[c] = n ? n.value : 0;
+    });
+    return out;
+  }
+
+  function headerRow(table, hasShift, hasRef, refLabel) {
+    var thead = doc.createElement("thead");
+    var tr = doc.createElement("tr");
+    ["Code", "Count", "Share", "Share of family"].forEach(function (h) {
+      var th = el("th", null, h);
+      th.setAttribute("scope", "col");
+      tr.appendChild(th);
+    });
+    if (hasShift) {
+      var t1 = el("th", null, "Change vs earlier");
+      t1.setAttribute("scope", "col");
+      tr.appendChild(t1);
+    }
+    if (hasRef) {
+      var t2 = el("th", null, "Difference vs " + refLabel);
+      t2.setAttribute("scope", "col");
+      tr.appendChild(t2);
+    }
+    thead.appendChild(tr);
+    table.appendChild(thead);
+  }
+
+  function renderTable(tableId, dist, sh, delta, allCodes, refPct, refLabel, captionText) {
+    var table = doc.getElementById(tableId);
+    table.textContent = "";
+    if (!dist.available) return;
+    var cap = doc.createElement("caption");
+    cap.className = "visually-hidden";
+    cap.textContent = captionText;
+    table.appendChild(cap);
+    headerRow(table, !!sh, !!delta, refLabel);
+    var tbody = doc.createElement("tbody");
+    allCodes.forEach(function (code) {
+      var inDenom = dist.codes.indexOf(code) !== -1;
+      var tr = doc.createElement("tr");
+      if (!inDenom) tr.className = "excluded";
+      var rh = el("th", "mono", code);
+      rh.setAttribute("scope", "row");
+      tr.appendChild(rh);
+      tr.appendChild(el("td", null, inDenom ? C.fmtInt(dist.counts[code]) : "excluded"));
+      tr.appendChild(el("td", null, inDenom ? C.fmtPct(dist.pct[code]) : "—"));
+
+      var bc = el("td", "barcell");
+      if (inDenom) {
+        var b1 = el("div", "bar");
+        b1.setAttribute("aria-hidden", "true");
+        var s1 = el("span");
+        s1.style.width = Math.max(0, Math.min(100, dist.pct[code] || 0)) + "%";
+        b1.appendChild(s1);
+        bc.appendChild(b1);
+        if (refPct && typeof refPct[code] === "number") {
+          var b2 = el("div", "bar ref");
+          b2.setAttribute("aria-hidden", "true");
+          var s2 = el("span");
+          s2.style.width = Math.max(0, Math.min(100, refPct[code])) + "%";
+          b2.appendChild(s2);
+          bc.appendChild(b2);
+        }
+      }
+      tr.appendChild(bc);
+
+      if (sh) tr.appendChild(el("td", null, inDenom ? C.fmtSigned(sh[code]) : "—"));
+      if (delta) tr.appendChild(el("td", null, inDenom ? C.fmtSigned(delta[code]) : "—"));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+  }
+
+  function renderLegend(id, hasRef, refLabel, denomNote) {
+    var p = doc.getElementById(id);
+    p.textContent = "";
+    if (!denomNote && !hasRef) return;
+    if (hasRef) {
+      p.appendChild(el("span", "k-you", "Your mix"));
+      p.appendChild(el("span", "k-ref", refLabel + ", Medicare FFS CY" + C.BENCH.source.year));
+    }
+    if (denomNote) p.appendChild(el("span", null, denomNote));
+  }
+
+  function renderBenchPanel(spec) {
+    var panel = doc.getElementById("benchpanel");
+    if (!spec) { panel.hidden = true; return; }
+    panel.hidden = false;
+    doc.getElementById("bench-head").textContent =
+      "About the reference distribution: " + spec.label + ", CY" + C.BENCH.source.year;
+    doc.getElementById("bench-year").textContent = "CY" + C.BENCH.source.year;
+    doc.getElementById("bench-spec").textContent =
+      spec.label + " (CMS Medicare provider-specialty description “" + spec.key + "”)";
+    doc.getElementById("bench-pop").textContent = C.BENCH.source.population;
+    var a = doc.getElementById("bench-url");
+    a.href = C.BENCH.source.url;
+    a.textContent = C.BENCH.source.name;
+    var cv = doc.getElementById("bench-cms");
+    cv.textContent = "";
+    C.BENCH.source.cms_verbatim.forEach(function (c) { cv.appendChild(el("li", null, "“" + c + "”")); });
+    var ul = doc.getElementById("bench-caveats");
+    ul.textContent = "";
+    C.BENCH.source.caveats.forEach(function (c) { ul.appendChild(el("li", null, c)); });
+    var un = doc.getElementById("bench-notes");
+    un.textContent = "";
+    C.BENCH.notes.forEach(function (c) { un.appendChild(el("li", null, c)); });
+  }
+
+  function update() {
+    var denom = doc.getElementById("denom").value;
+    var benchKey = benchSel.value;
+    var spec = benchKey ? C.specialty(benchKey) : null;
+
+    [
+      { family: "est", label: "established", allCodes: C.EST_CODES, table: "est-table",
+        shape: "est-shape", legend: "est-legend" },
+      { family: "new", label: "new-patient", allCodes: C.NEW_CODES, table: "new-table",
+        shape: "new-shape", legend: "new-legend" }
+    ].forEach(function (f) {
+      var codes = C.codesFor(f.family === "new" ? "new" : "est", denom);
+      var cur = C.distribution(readCounts(f.family, "cur", f.allCodes), codes);
+      var pri = C.distribution(readCounts(f.family, "pri", f.allCodes), codes);
+      var sh = C.shift(cur, pri);
+      var refPct = spec ? C.refDist(spec.key, f.family === "new" ? "new" : "est", denom) : null;
+      var delta = C.benchDelta(cur, refPct);
+
+      doc.getElementById(f.shape).textContent = C.describeShape(cur, sh, f.label);
+      doc.getElementById(f.shape).className = cur.available ? "shape" : "shape nodata";
+
+      renderTable(f.table, cur, sh, delta, f.allCodes, refPct, spec ? spec.label : "",
+        "Your " + f.label + " office-visit mix by code" +
+        (sh ? ", with the change in percentage points versus the earlier period" : "") +
+        (delta ? ", and the difference in percentage points versus the " + spec.label +
+                 " reference distribution" : ""));
+
+      var denomNote = null;
+      if (f.family === "est" && cur.available) {
+        denomNote = denom === "ex211"
+          ? "Denominator: 99212–99215 (99211 excluded)"
+          : "Denominator: 99211–99215 (all established office visits)";
+      }
+      renderLegend(f.legend, !!(spec && cur.available), spec ? spec.label : "", denomNote);
+    });
+
+    renderBenchPanel(spec);
+  }
+
+  doc.getElementById("denom").addEventListener("change", update);
+  benchSel.addEventListener("change", update);
+  update();
+})();
+</script>
+</body>
+</html>

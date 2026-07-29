@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://ototao.github.io/minebilling-site/</loc></url>
+  <url><loc>https://ototao.github.io/minebilling-site/request.html</loc></url>
   <url><loc>https://ototao.github.io/minebilling-site/tools/em-calculator.html</loc></url>
+  <url><loc>https://ototao.github.io/minebilling-site/tools/denial-codes.html</loc></url>
+  <url><loc>https://ototao.github.io/minebilling-site/tools/timely-filing.html</loc></url>
+  <url><loc>https://ototao.github.io/minebilling-site/tools/em-mix.html</loc></url>
   <url><loc>https://ototao.github.io/minebilling-site/tools/npi-validator.html</loc></url>
 </urlset>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Request your free billing scorecard | MineBilling</title>
+<meta name="description" content="Request a free billing scorecard for your primary-care practice: send 60 days of already-billed claims after a signed BAA and receive a written report on denial patterns and claims at risk. No cost, no obligation.">
+<link rel="canonical" href="https://ototao.github.io/minebilling-site/request.html">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="./">MineBilling<span class="tld">.</span></a>
+  <nav class="site">
+    <a href="tools/em-calculator.html">Free tools</a>
+  </nav>
+</header>
+<main>
+  <h1>Request your free scorecard</h1>
+  <p class="lede">Answer what you can — nothing here is required, and none of it is
+  patient information. When you're done, the button opens an email in your own mail app
+  with the answers filled in. Nothing is sent until you press send, and this page stores
+  and transmits nothing on its own.</p>
+
+  <form class="calc" id="req" onsubmit="return false">
+    <div class="field">
+      <label for="clinic">Practice name</label>
+      <input type="text" id="clinic" autocomplete="organization" placeholder="e.g. Lakeview Family Medicine">
+    </div>
+    <div class="field">
+      <label for="who">Your name and role</label>
+      <input type="text" id="who" autocomplete="name" placeholder="e.g. Dr. Patel, owner">
+    </div>
+    <div class="field">
+      <label for="state">State</label>
+      <input type="text" id="state" placeholder="e.g. Illinois">
+      <p class="hint">Fee structures differ by state law, so this determines what we can
+      offer you in writing.</p>
+    </div>
+    <div class="field">
+      <label for="providers">Number of providers billing under the practice</label>
+      <input type="number" id="providers" min="1" max="200" inputmode="numeric" placeholder="e.g. 3">
+    </div>
+    <div class="field">
+      <label for="pms">Practice management / EHR system</label>
+      <input type="text" id="pms" placeholder="e.g. Athena, eCW, Epic, NextGen, Practice Fusion">
+      <p class="hint">This tells us how your claims export will look. If you're not sure,
+      leave it blank — your office manager will know.</p>
+    </div>
+    <div class="field">
+      <label for="billing">Who does your billing today?</label>
+      <select id="billing">
+        <option value="">— select —</option>
+        <option>In-house staff</option>
+        <option>An outside billing company</option>
+        <option>A mix of both</option>
+        <option>Not sure</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="pain">What bothers you most about billing right now?</label>
+      <select id="pain">
+        <option value="">— select —</option>
+        <option>Denials and rework</option>
+        <option>Slow payment / aging accounts receivable</option>
+        <option>Not knowing whether coding is accurate</option>
+        <option>Staff time consumed by billing</option>
+        <option>Something else (I'll explain in the email)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="notes">Anything else worth knowing</label>
+      <input type="text" id="notes" placeholder="optional">
+    </div>
+  </form>
+
+  <section class="cta-box">
+    <h2>Send the request</h2>
+    <p>This opens your email app with everything above filled in. Review it, add anything
+    you want, and send.</p>
+    <a class="btn" id="send" href="#">Open the email</a>
+    <p class="fineprint">Please don't include any patient information in your email — not
+    names, not dates of birth, not chart numbers. Patient data only moves after a signed
+    Business Associate Agreement, and the scorecard itself is produced from claims and
+    remittance data, not charts.</p>
+  </section>
+
+  <h2>What happens next</h2>
+  <p>We reply to agree on scope and sign a Business Associate Agreement — the HIPAA
+  paperwork that has to exist before any patient information changes hands. Only then does
+  your office manager export 60 days of already-billed claims and remittances (a CSV from
+  your system, or the 835 files from your clearinghouse). You get a written scorecard back:
+  the denial patterns in your own data, which claims are at risk, and what we'd do
+  differently. It's yours to keep whether or not we ever work together.</p>
+
+  <h2>What we don't do</h2>
+  <p>We don't promise higher reimbursement — no honest billing service can, because your
+  codes are determined by your documentation and your payers' rules. We don't touch your
+  money: payers remit directly to your accounts. And no claim goes out without a licensed
+  human reviewing and signing it.</p>
+</main>
+<footer class="site">
+  <div class="inner">
+    <p>© 2026 MineBilling. General information, not billing, coding, legal, or medical
+    advice. CPT® is a registered trademark of the American Medical Association.</p>
+  </div>
+</footer>
+<script>
+(function () {
+  var ids = ["clinic", "who", "state", "providers", "pms", "billing", "pain", "notes"];
+  var labels = {
+    clinic: "Practice", who: "Contact", state: "State", providers: "Providers",
+    pms: "System", billing: "Billing today", pain: "Biggest problem", notes: "Notes"
+  };
+  document.getElementById("send").addEventListener("click", function (ev) {
+    ev.preventDefault();
+    var lines = ["Please don't include any patient information in this email.", ""];
+    ids.forEach(function (id) {
+      var v = (document.getElementById(id).value || "").trim();
+      if (v) lines.push(labels[id] + ": " + v);
+    });
+    if (lines.length === 2) lines.push("(no details provided — happy to talk it through)");
+    lines.push("", "I'd like a free billing scorecard.");
+    var subject = "Free billing scorecard request";
+    var clinic = (document.getElementById("clinic").value || "").trim();
+    if (clinic) subject += " — " + clinic;
+    window.location.href = "mailto:ototao@pm.me?subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(lines.join("\n"));
+  });
+})();
+</script>
+</body>
+</html>

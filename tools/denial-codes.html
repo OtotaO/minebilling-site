@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Denial Code Lookup — CARC &amp; RARC search (CO-16, 197, N130) | MineBilling</title>
+<meta name="description" content="Free denial code lookup: search CARC and RARC remittance codes by number or plain English. What CO-16, denial code 197, 96, 29 and N130 actually mean, the official X12 text, and the typical next step. Runs entirely in your browser.">
+<link rel="canonical" href="https://ototao.github.io/minebilling-site/tools/denial-codes.html">
+<link rel="stylesheet" href="../style.css">
+<style>
+  .lookup { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+             padding: 1.4rem 1.6rem; display: flex; flex-direction: column; gap: 1rem; max-width: 720px; }
+  .lookup input[type="search"] { font: inherit; padding: .6rem .75rem; border: 1px solid var(--line);
+             border-radius: 8px; background: var(--paper); color: var(--ink); width: 100%; }
+  .lookup input[type="search"]:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .lookup .row { display: flex; flex-wrap: wrap; gap: .8rem; align-items: flex-end; }
+  .lookup .row .field { flex: 1 1 12rem; }
+  .status { font-size: .85rem; color: var(--ink-2); }
+  .grouphint { border-left: 4px solid var(--gold); background: #FBF7EC; border-radius: 8px;
+             padding: .8rem 1rem; font-size: .9rem; margin: 0; max-width: 70ch; }
+  ul.hits { list-style: none; padding: 0; margin: 1.4rem 0 0; display: grid; gap: .9rem; }
+  ul.hits > li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+             padding: 1rem 1.2rem; }
+  .hit-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .8rem; margin-bottom: .5rem; }
+  .hit-head .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700;
+             font-size: 1.05rem; color: var(--teal-deep); }
+  .tag { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2);
+             border: 1px solid var(--line); border-radius: 999px; padding: .1rem .55rem; }
+  .hits p, .qa p { margin: .3rem 0 0; font-size: .93rem; max-width: 72ch; }
+  .official { color: var(--ink); border-left: 3px solid var(--line); padding-left: .8rem; }
+  .label { font-weight: 600; }
+  .qa { border-top: 1px solid var(--line); padding: .9rem 0 .2rem; }
+  .qa h3 { font-size: .98rem; margin-bottom: .3rem; }
+  .qa .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--teal-deep); }
+  .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .2rem 0 0; padding: 0; list-style: none; }
+  .chips button { font: inherit; font-size: .82rem; background: var(--paper); color: var(--teal-deep);
+             border: 1px solid var(--line); border-radius: 999px; padding: .25rem .7rem; cursor: pointer; }
+  .chips button:hover { border-color: var(--teal); }
+  .chips button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+</style>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="../">MineBilling<span class="tld">.</span></a>
+  <nav class="site">
+    <a href="em-calculator.html">E/M calculator</a>
+    <a href="npi-validator.html">NPI validator</a>
+    <a href="../#free-look">Free scorecard</a>
+  </nav>
+</header>
+<main>
+  <h1>Denial code lookup</h1>
+  <p class="lede">Type a code (<span class="code">CO-16</span>, <span class="code">197</span>,
+  <span class="code">N130</span>) or plain English (“prior authorization”, “timely filing”)
+  and get the official X12 text, what it means in practice, and the typical next step.
+  Everything runs in your browser — nothing is sent anywhere, and no patient data
+  belongs on this page.</p>
+
+  <form class="lookup" role="search" onsubmit="return false;">
+    <div class="row">
+      <div class="field">
+        <label for="q">Search denial codes</label>
+        <input type="search" id="q" autocomplete="off" spellcheck="false"
+               placeholder="e.g. CO-16, 197, N130, prior authorization" aria-describedby="status">
+      </div>
+      <div class="field">
+        <label for="cat">Category</label>
+        <select id="cat">
+          <option value="">All categories</option>
+        <option value="coding">Coding / modifier</option>
+        <option value="coordination">Coordination of benefits</option>
+        <option value="documentation">Documentation</option>
+        <option value="duplicate">Duplicate</option>
+        <option value="eligibility">Eligibility</option>
+        <option value="other">Other</option>
+        <option value="timely">Timely filing</option>
+        </select>
+      </div>
+    </div>
+    <ul class="chips" aria-label="Example searches">
+      <li><button type="button" data-q="CO-16">CO-16</button></li>
+      <li><button type="button" data-q="197">197</button></li>
+      <li><button type="button" data-q="96">96</button></li>
+      <li><button type="button" data-q="29">29</button></li>
+      <li><button type="button" data-q="MA130">MA130</button></li>
+      <li><button type="button" data-q="prior authorization">prior authorization</button></li>
+      <li><button type="button" data-q="">Show all 86 codes</button></li>
+    </ul>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <p class="grouphint" id="grouphint" hidden></p>
+  </form>
+
+  <ul class="hits" id="hits"></ul>
+  <noscript>
+    <p class="fineprint">The search box needs JavaScript. Eleven codes are written out in
+    full further down the page without it, and the full X12 lists are linked at the bottom.</p>
+  </noscript>
+
+  <h2>The group codes: CO, PR, OA and PI</h2>
+  <p>A remittance line carries two things: a <strong>claim adjustment group code</strong>
+  that says <em>who</em> the money moves to, and a <strong>claim adjustment reason code</strong>
+  (CARC) that says <em>why</em>. That is why staff write “CO-16” or “PR-1” — those are a pair,
+  not a single code. X12 publishes exactly four group codes:</p>
+    <div class="qa">
+      <h3><span class="code">CO</span> — Contractual Obligation</h3>
+      <p>A contractual agreement between the payer and you, or a regulatory requirement, produced the adjustment. CMS describes these as generally a write-off for the provider and not billed to the patient — so treat it as a write-off unless the adjustment itself is wrong.</p>
+    </div>
+    <div class="qa">
+      <h3><span class="code">PR</span> — Patient Responsibility</h3>
+      <p>The adjustment is an amount that may be billed to the patient or insured. CMS says this group is typically used for deductible and copay adjustments; coinsurance (CARC 2) carries it too.</p>
+    </div>
+    <div class="qa">
+      <h3><span class="code">OA</span> — Other Adjustment</h3>
+      <p>CMS defines this as the group code used when no other group code applies. One concrete case is fixed by X12 itself: CARC 23, “The impact of prior payer(s) adjudication including payments and/or adjustments”, may be used only with group code OA — X12 says so in the code text itself.</p>
+    </div>
+    <div class="qa">
+      <h3><span class="code">PI</span> — Payor Initiated Reduction</h3>
+      <p>X12 publishes the name and no definition, and we found no published definition to quote — so we are not inventing one. What is verifiable: Medicare remittance advice does not use PI. CMS lists only CO, OA and PR as valid group codes for Medicare remittance advice.</p>
+    </div>
+  <p class="fineprint">Group-code names above are verbatim from X12’s
+  <a href="https://x12.org/codes/claim-adjustment-group-codes" rel="noopener">claim adjustment group codes</a>
+  list (retrieved 2026-07-29); the CARC 23 quote is verbatim X12. The CO, PR and OA descriptions
+  follow the definitions in
+  <a href="https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c22.pdf" rel="noopener">CMS
+  Medicare Claims Processing Manual, Chapter 22, §60.1</a>, which is Medicare-specific; other payers
+  may apply the same group codes differently. The rest of the wording is ours.</p>
+
+  <h2>What to do first when denials cluster</h2>
+  <ol>
+    <li><span class="label">Separate real denials from adjustments before you count anything.</span>
+      CARC 1, 2 and 3 (deductible, coinsurance, copay) and CARC 45 (charge above the contracted
+      allowed amount) are normal adjudication, not denials. Counting them makes a denial rate
+      look far worse than it is, and sends you chasing money that was never yours.</li>
+    <li><span class="label">Sort by dollars, not by count.</span> A hundred $18 lines and four
+      $600 lines are different problems with different fixes.</li>
+    <li><span class="label">Read the remark code on the same line.</span> CARC 16 by itself never
+      tells you what was missing — X12 requires at least one remark code with it, and that
+      remark code is the actual answer.</li>
+    <li><span class="label">Ask whether it is a claim problem or a front-desk problem.</span>
+      Eligibility, prior authorization and timely filing denials are usually created before the
+      claim is ever built. Reworking them one at a time treats the symptom.</li>
+    <li><span class="label">Check the payer’s own published policy before appealing.</span> The
+      X12 text is deliberately generic across every payer in the country. Whether a service needed
+      authorization, how long you have to file, and what proof counts are all payer- and
+      contract-specific.</li>
+    <li><span class="label">Accept that some denials are not recoverable.</span> Timely-filing
+      denials without proof of a timely original submission are a process fix, not an appeal, and
+      a claim rejected as unprocessable (RARC MA130) carries no appeal rights at all — it has to be
+      corrected and resubmitted as a new claim.</li>
+  </ol>
+
+  <h2>Eleven codes worth understanding</h2>
+  <p class="fineprint">These eleven are written out because each one is handled differently from
+  the others in a way that costs money if you get it wrong — not because we measured how often
+  they occur. We found no published dataset of denial frequency, so this page carries no ranking,
+  no percentages, and no claim about which codes turn up more often than others.</p>
+    <div class="qa">
+      <h3 id="code-16"><span class="code">CARC&nbsp;16</span> — Something required was missing or wrong on the claim. The accompanying remark code says what.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “Claim/service lacks information or has submission/billing error(s). Usage: Do not use this code for claims attachment(s)/other documentation. At least one Remark Code must be provided (may be comprised of either the NCPDP Reject Reason Code, or Remittance Advice Remark Code that is not an ALERT.) Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.”</p>
+      <p><span class="label">Typical next step:</span> Read the RARC(s) on the same line — they name the missing element. Supply it and resubmit as a corrected claim.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-18"><span class="code">CARC&nbsp;18</span> — The payer has already received this exact claim line.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “Exact duplicate claim/service (Use only with Group Code OA except where state workers&#x27; compensation regulations requires CO)”</p>
+      <p><span class="label">Typical next step:</span> Check whether the original was paid before resubmitting. If it paid, post it and close. If it was a distinct second service the same day, an appropriate modifier may apply — only if the documentation supports two separate services.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-27"><span class="code">CARC&nbsp;27</span> — The patient&#x27;s coverage had already ended on the date of service.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “Expenses incurred after coverage terminated.”</p>
+      <p><span class="label">Typical next step:</span> Re-verify eligibility for that date of service. If the patient moved to a new plan, rebill the correct payer. Front-desk eligibility checks at check-in prevent most of these.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-29"><span class="code">CARC&nbsp;29</span> — The claim arrived after the payer&#x27;s filing deadline.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “The time limit for filing has expired.”</p>
+      <p><span class="label">Typical next step:</span> Check the payer&#x27;s filing limit and whether you hold proof of timely original submission (clearinghouse acceptance report). If you do, submit that proof per the payer&#x27;s process. If you do not, this is usually not recoverable — treat it as a process fix, not an appeal.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-45"><span class="code">CARC&nbsp;45</span> — The charge was above the contracted allowed amount. The difference is a contractual write-off, not a denial.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “Charge exceeds fee schedule/maximum allowable or contracted/legislated fee arrangement. Usage: This adjustment amount cannot equal the total service or claim charge amount; and must not duplicate provider adjustment amounts (payments and contractual reductions) that have resulted from prior payer(s) adjudication. (Use only with Group Codes PR or CO depending upon liability)”</p>
+      <p><span class="label">Typical next step:</span> Post the contractual adjustment. If the allowed amount looks wrong, compare it to your fee schedule with that payer before disputing.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-96"><span class="code">CARC&nbsp;96</span> — The service is not a covered benefit. The accompanying remark code says why.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “Non-covered charge(s). At least one Remark Code must be provided (may be comprised of either the NCPDP Reject Reason Code, or Remittance Advice Remark Code that is not an ALERT.) Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.”</p>
+      <p><span class="label">Typical next step:</span> Read the RARC on the same line for the specific reason. Check whether the patient was given advance notice of non-coverage before billing them.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-97"><span class="code">CARC&nbsp;97</span> — This service is bundled into another service already paid on the same day.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “The benefit for this service is included in the payment/allowance for another service/procedure that has already been adjudicated. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.”</p>
+      <p><span class="label">Typical next step:</span> Verify the bundling against the payer&#x27;s policy or the National Correct Coding Initiative edits. Only consider a modifier if the documentation genuinely shows a separate, distinct service.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-109"><span class="code">CARC&nbsp;109</span> — This claim went to the wrong payer or contractor.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “Claim/service not covered by this payer/contractor. You must send the claim/service to the correct payer/contractor.”</p>
+      <p><span class="label">Typical next step:</span> Re-verify the patient&#x27;s active plan and the correct payer ID, then submit to the correct payer. Watch the new payer&#x27;s filing deadline.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-197"><span class="code">CARC&nbsp;197</span> — Prior authorization was required and was not obtained.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “Precertification/authorization/notification/pre-treatment absent.”</p>
+      <p><span class="label">Typical next step:</span> Confirm whether the service actually required authorization for this plan. Some payers allow retroactive authorization in narrow circumstances — check the payer&#x27;s published policy rather than assuming.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-204"><span class="code">CARC&nbsp;204</span> — This item is not a covered benefit under the patient&#x27;s plan.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “This service/equipment/drug is not covered under the patient&#x27;s current benefit plan”</p>
+      <p><span class="label">Typical next step:</span> Confirm the benefit with the payer. If the patient was informed in advance that it would not be covered, it may be billable to them under your financial policy.</p>
+    </div>
+    <div class="qa">
+      <h3 id="code-ma130"><span class="code">RARC&nbsp;MA130</span> — The claim was rejected as unprocessable, so there are no appeal rights — it must be corrected and sent again.</h3>
+      <p class="official"><span class="label">Official X12 text:</span> “Your claim contains incomplete and/or invalid information, and no appeal rights are afforded because the claim is unprocessable. Please submit a new claim with the complete/correct information.”</p>
+      <p><span class="label">Typical next step:</span> Do not file an appeal; it will not be accepted. Read the paired reason/remark codes, fix the missing or invalid data, and submit a brand-new claim.</p>
+    </div>
+
+  <section class="cta-box">
+    <h2>Want to know which of these is actually costing you?</h2>
+    <p>MineBilling’s free scorecard reads 60 days of your own claims and remittances — after we
+    sign a Business Associate Agreement; we take no patient data before that — and returns a
+    written scorecard: what’s being denied, by dollars and by code, and what we’d do differently.
+    It’s yours to keep either way, whether or not we ever work together.
+    <a href="../#free-look">Request the free scorecard</a>.</p>
+  </section>
+
+  <h2>Sources and limits</h2>
+  <p class="fineprint">
+    Code text is verbatim from X12, the official maintainer of these lists:
+    <a href="https://x12.org/codes/claim-adjustment-reason-codes" rel="noopener">claim adjustment reason codes (CARC)</a>,
+    <a href="https://x12.org/codes/remittance-advice-remark-codes" rel="noopener">remittance advice remark codes (RARC)</a>,
+    <a href="https://x12.org/codes/claim-adjustment-group-codes" rel="noopener">claim adjustment group codes</a>.
+    Retrieved 2026-07-29. Only the “official text” quoted on this page is X12’s wording; the
+    plain-English line, the typical next step and the category are ours.
+  </p>
+  <p class="fineprint">
+    <span class="label">This is a subset, not the whole list.</span> 86 codes are on this page —
+    a working set for primary care. At retrieval X12 published 407 CARC and
+    1216 RARC entries. A code that is missing here is not invalid; look it up at the
+    source. We also publish no frequency or prevalence statistics for these codes, because we
+    could not find a published dataset that supports them.
+  </p>
+  <p class="fineprint">
+    Informational only — not billing, coding, or legal advice, and not a promise of payment.
+    Payer-specific policy and your participation agreement override these general descriptions,
+    and a licensed human should review any claim action. CPT® is a registered trademark of the
+    American Medical Association.
+  </p>
+</main>
+<footer class="site">
+  <div class="inner">
+    <p>© 2026 MineBilling. General information, not billing, coding, legal, or medical advice.</p>
+  </div>
+</footer>
+<script>
+var DENIAL_CODES = [{"code":"1","type":"CARC","meaning":"Deductible Amount","plain":"The patient owes this amount because they had not met their deductible yet. This is not a denial.","fix":"Bill the patient for this balance. Confirm the deductible amount against the payer's eligibility response before billing.","category":"other","dates":"Start: 01/01/1995"},{"code":"2","type":"CARC","meaning":"Coinsurance Amount","plain":"The patient owes this percentage share of the allowed amount. This is not a denial.","fix":"Bill the patient for this balance.","category":"other","dates":"Start: 01/01/1995"},{"code":"3","type":"CARC","meaning":"Co-payment Amount","plain":"The patient owes their flat copay for the visit. This is not a denial.","fix":"Bill the patient for this balance if it was not collected at the front desk.","category":"other","dates":"Start: 01/01/1995"},{"code":"4","type":"CARC","meaning":"The procedure code is inconsistent with the modifier used. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The modifier on the line does not fit the procedure code it was attached to.","fix":"Pull the note and confirm what was actually done, then correct or remove the modifier and resubmit as a corrected claim. Do not add a modifier the documentation does not support.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 03/01/2020"},{"code":"5","type":"CARC","meaning":"The procedure code/type of bill is inconsistent with the place of service. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The place-of-service code does not fit the procedure billed.","fix":"Verify where the service actually happened and correct the place-of-service code on the claim, then resubmit as a corrected claim.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 03/01/2018"},{"code":"6","type":"CARC","meaning":"The procedure/revenue code is inconsistent with the patient's age. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The procedure billed does not fit the patient's age.","fix":"Check the patient's date of birth on file and the age range for the code. Correct whichever is wrong and resubmit as a corrected claim.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"11","type":"CARC","meaning":"The diagnosis is inconsistent with the procedure. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The diagnosis billed does not support the procedure billed.","fix":"Re-read the note and confirm the diagnoses actually documented, then correct the diagnosis linkage and resubmit. Do not add a diagnosis that is not in the record.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"16","type":"CARC","meaning":"Claim/service lacks information or has submission/billing error(s). Usage: Do not use this code for claims attachment(s)/other documentation. At least one Remark Code must be provided (may be comprised of either the NCPDP Reject Reason Code, or Remittance Advice Remark Code that is not an ALERT.) Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"Something required was missing or wrong on the claim. The accompanying remark code says what.","fix":"Read the RARC(s) on the same line — they name the missing element. Supply it and resubmit as a corrected claim.","category":"documentation","dates":"Start: 01/01/1995 | Last Modified: 03/01/2018"},{"code":"18","type":"CARC","meaning":"Exact duplicate claim/service (Use only with Group Code OA except where state workers' compensation regulations requires CO)","plain":"The payer has already received this exact claim line.","fix":"Check whether the original was paid before resubmitting. If it paid, post it and close. If it was a distinct second service the same day, an appropriate modifier may apply — only if the documentation supports two separate services.","category":"duplicate","dates":"Start: 01/01/1995 | Last Modified: 06/02/2013"},{"code":"19","type":"CARC","meaning":"This is a work-related injury/illness and thus the liability of the Worker's Compensation Carrier.","plain":"The payer says this is a workers' compensation injury and not their liability.","fix":"Confirm with the patient whether this was work-related and, if so, rebill the workers' compensation carrier.","category":"coordination","dates":"Start: 01/01/1995 | Last Modified: 09/30/2007"},{"code":"22","type":"CARC","meaning":"This care may be covered by another payer per coordination of benefits.","plain":"Another insurer is primary for this patient.","fix":"Verify the coordination-of-benefits order with the patient and the payer, then bill the primary carrier first.","category":"coordination","dates":"Start: 01/01/1995 | Last Modified: 09/30/2007"},{"code":"23","type":"CARC","meaning":"The impact of prior payer(s) adjudication including payments and/or adjustments. (Use only with Group Code OA)","plain":"This line reflects what the prior (primary) payer already paid or adjusted.","fix":"Post as a coordination-of-benefits adjustment. This is normally informational, not an action item.","category":"coordination","dates":"Start: 01/01/1995 | Last Modified: 09/30/2012"},{"code":"24","type":"CARC","meaning":"Charges are covered under a capitation agreement/managed care plan.","plain":"The patient is in a capitated or managed-care arrangement, so this service is not paid fee-for-service.","fix":"Confirm the patient's plan assignment. If the capitation arrangement is correct, write the balance off per the contract rather than billing the patient.","category":"other","dates":"Start: 01/01/1995 | Last Modified: 09/30/2007"},{"code":"26","type":"CARC","meaning":"Expenses incurred prior to coverage.","plain":"The service happened before the patient's coverage started.","fix":"Re-verify the coverage effective date. If the patient had different coverage on that date, rebill the correct payer; otherwise this may be patient responsibility under your financial policy.","category":"eligibility","dates":"Start: 01/01/1995"},{"code":"27","type":"CARC","meaning":"Expenses incurred after coverage terminated.","plain":"The patient's coverage had already ended on the date of service.","fix":"Re-verify eligibility for that date of service. If the patient moved to a new plan, rebill the correct payer. Front-desk eligibility checks at check-in prevent most of these.","category":"eligibility","dates":"Start: 01/01/1995"},{"code":"29","type":"CARC","meaning":"The time limit for filing has expired.","plain":"The claim arrived after the payer's filing deadline.","fix":"Check the payer's filing limit and whether you hold proof of timely original submission (clearinghouse acceptance report). If you do, submit that proof per the payer's process. If you do not, this is usually not recoverable — treat it as a process fix, not an appeal.","category":"timely","dates":"Start: 01/01/1995"},{"code":"31","type":"CARC","meaning":"Patient cannot be identified as our insured.","plain":"The payer cannot match this patient to any member on file.","fix":"Re-check the member ID, name spelling, and date of birth against the patient's card, then resubmit as a corrected claim.","category":"eligibility","dates":"Start: 01/01/1995 | Last Modified: 09/30/2007"},{"code":"39","type":"CARC","meaning":"Services denied at the time authorization/pre-certification was requested.","plain":"The service was denied at the time prior authorization was requested.","fix":"Locate the authorization decision and its stated reason. Whether a reconsideration is available depends on the payer's policy — check that policy before promising anything.","category":"other","dates":"Start: 01/01/1995"},{"code":"40","type":"CARC","meaning":"Charges do not meet qualifications for emergent/urgent care. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The payer did not consider this encounter emergent or urgent.","fix":"Confirm what level of service the documentation supports and rebill under the correct code if it was not truly urgent care.","category":"other","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"45","type":"CARC","meaning":"Charge exceeds fee schedule/maximum allowable or contracted/legislated fee arrangement. Usage: This adjustment amount cannot equal the total service or claim charge amount; and must not duplicate provider adjustment amounts (payments and contractual reductions) that have resulted from prior payer(s) adjudication. (Use only with Group Codes PR or CO depending upon liability)","plain":"The charge was above the contracted allowed amount. The difference is a contractual write-off, not a denial.","fix":"Post the contractual adjustment. If the allowed amount looks wrong, compare it to your fee schedule with that payer before disputing.","category":"other","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"49","type":"CARC","meaning":"This is a non-covered service because it is a routine/preventive exam or a diagnostic/screening procedure done in conjunction with a routine/preventive exam. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The payer treats this as a routine or preventive service that is not covered under this benefit.","fix":"Confirm whether the visit was preventive, problem-oriented, or both. If a separate problem was genuinely addressed and documented, a problem visit may be separately reportable; only bill it if the note supports it.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"50","type":"CARC","meaning":"These are non-covered services because this is not deemed a 'medical necessity' by the payer. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The payer does not consider this service medically necessary as billed.","fix":"Compare the note against the payer's published coverage policy for that code. If the documentation already meets the policy, follow the payer's redetermination process. If it does not, fix the documentation habit going forward.","category":"documentation","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"55","type":"CARC","meaning":"Procedure/treatment/drug is deemed experimental/investigational by the payer. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The payer considers this experimental or investigational.","fix":"Check the payer's medical policy for that code. Coverage is usually decided by policy, so confirm the policy language before spending time on it.","category":"other","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"58","type":"CARC","meaning":"Treatment was deemed by the payer to have been rendered in an inappropriate or invalid place of service. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The payer says the service was delivered in the wrong place of service.","fix":"Verify the actual service location and correct the place-of-service code, then resubmit as a corrected claim.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"59","type":"CARC","meaning":"Processed based on multiple or concurrent procedure rules. (For example multiple surgery or diagnostic imaging, concurrent anesthesia.) Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"Payment was reduced under multiple-procedure or concurrent-procedure rules.","fix":"Confirm the reduction matches the payer's published multiple-procedure policy. This is usually a correct adjustment rather than an error.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"96","type":"CARC","meaning":"Non-covered charge(s). At least one Remark Code must be provided (may be comprised of either the NCPDP Reject Reason Code, or Remittance Advice Remark Code that is not an ALERT.) Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The service is not a covered benefit. The accompanying remark code says why.","fix":"Read the RARC on the same line for the specific reason. Check whether the patient was given advance notice of non-coverage before billing them.","category":"other","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"97","type":"CARC","meaning":"The benefit for this service is included in the payment/allowance for another service/procedure that has already been adjudicated. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"This service is bundled into another service already paid on the same day.","fix":"Verify the bundling against the payer's policy or the National Correct Coding Initiative edits. Only consider a modifier if the documentation genuinely shows a separate, distinct service.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"107","type":"CARC","meaning":"The related or qualifying claim/service was not identified on this claim. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"A related or qualifying service that this code depends on was not identified on the claim.","fix":"Identify the qualifying service and make sure it is billed and referenced correctly, then resubmit.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"109","type":"CARC","meaning":"Claim/service not covered by this payer/contractor. You must send the claim/service to the correct payer/contractor.","plain":"This claim went to the wrong payer or contractor.","fix":"Re-verify the patient's active plan and the correct payer ID, then submit to the correct payer. Watch the new payer's filing deadline.","category":"coordination","dates":"Start: 01/01/1995 | Last Modified: 01/29/2012"},{"code":"119","type":"CARC","meaning":"Benefit maximum for this time period or occurrence has been reached.","plain":"The patient has used up the benefit maximum for this period.","fix":"Confirm the benefit limit with the payer. Remaining balance is often patient responsibility — check the plan terms before billing the patient.","category":"eligibility","dates":"Start: 01/01/1995 | Last Modified: 02/29/2004"},{"code":"140","type":"CARC","meaning":"Patient/Insured health identification number and name do not match.","plain":"The member ID and the patient's name do not match the payer's records.","fix":"Correct the name or member ID to exactly match the insurance card and resubmit as a corrected claim.","category":"eligibility","dates":"Start: 06/30/1999"},{"code":"146","type":"CARC","meaning":"Diagnosis was invalid for the date(s) of service reported.","plain":"The diagnosis code was not valid on the date of service.","fix":"Check the ICD-10-CM code set in effect for that date of service and recode from the documentation, then resubmit.","category":"coding","dates":"Start: 06/30/2002 | Last Modified: 09/30/2007"},{"code":"151","type":"CARC","meaning":"Payment adjusted because the payer deems the information submitted does not support this many/frequency of services.","plain":"The payer says the records do not support this many services in the period billed.","fix":"Verify the units and frequency actually documented. If the documentation supports them, follow the payer's reconsideration process; if not, correct the units.","category":"documentation","dates":"Start: 10/31/2002 | Last Modified: 01/27/2008"},{"code":"167","type":"CARC","meaning":"This (these) diagnosis(es) is (are) not covered. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The diagnosis billed is not covered under this plan.","fix":"Check the payer's coverage policy for that diagnosis and confirm the note supports the diagnosis actually coded.","category":"coding","dates":"Start: 06/30/2005 | Last Modified: 07/01/2017"},{"code":"181","type":"CARC","meaning":"Procedure code was invalid on the date of service.","plain":"The procedure code was not valid on the date of service.","fix":"Check the CPT/HCPCS code set in effect for that date of service and recode from the documentation, then resubmit.","category":"coding","dates":"Start: 06/30/2005 | Last Modified: 09/30/2007"},{"code":"182","type":"CARC","meaning":"Procedure modifier was invalid on the date of service.","plain":"The modifier was not valid on the date of service.","fix":"Check the modifier list in effect for that date and correct or remove the modifier, then resubmit.","category":"coding","dates":"Start: 06/30/2005 | Last Modified: 09/30/2007"},{"code":"183","type":"CARC","meaning":"The referring provider is not eligible to refer the service billed. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The referring provider is not eligible to refer this service.","fix":"Verify the referring provider's NPI and enrollment status, correct the referring provider on the claim, and resubmit.","category":"other","dates":"Start: 06/30/2005 | Last Modified: 07/01/2017"},{"code":"185","type":"CARC","meaning":"The rendering provider is not eligible to perform the service billed. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The rendering provider is not eligible to perform this service under this payer.","fix":"Check the rendering provider's enrollment, credentialing, and specialty with that payer. This is usually a credentialing fix, not a claim fix.","category":"other","dates":"Start: 06/30/2005 | Last Modified: 07/01/2017"},{"code":"197","type":"CARC","meaning":"Precertification/authorization/notification/pre-treatment absent.","plain":"Prior authorization was required and was not obtained.","fix":"Confirm whether the service actually required authorization for this plan. Some payers allow retroactive authorization in narrow circumstances — check the payer's published policy rather than assuming.","category":"other","dates":"Start: 10/31/2006 | Last Modified: 05/01/2018"},{"code":"198","type":"CARC","meaning":"Precertification/notification/authorization/pre-treatment exceeded.","plain":"The services went beyond what the authorization covered.","fix":"Compare the units or visits authorized to what was billed. Request additional authorization going forward if the course of care is continuing.","category":"other","dates":"Start: 10/31/2006 | Last Modified: 05/01/2018"},{"code":"204","type":"CARC","meaning":"This service/equipment/drug is not covered under the patient's current benefit plan","plain":"This item is not a covered benefit under the patient's plan.","fix":"Confirm the benefit with the payer. If the patient was informed in advance that it would not be covered, it may be billable to them under your financial policy.","category":"other","dates":"Start: 02/28/2007"},{"code":"208","type":"CARC","meaning":"National Provider Identifier - Not matched.","plain":"The NPI on the claim did not match the payer's records.","fix":"Verify the NPI against NPPES and against your enrollment record with that payer, correct it, and resubmit.","category":"other","dates":"Start: 07/09/2007 | Last Modified: 09/30/2007"},{"code":"234","type":"CARC","meaning":"This procedure is not paid separately. At least one Remark Code must be provided (may be comprised of either the NCPDP Reject Reason Code, or Remittance Advice Remark Code that is not an ALERT.)","plain":"This procedure is never paid on its own.","fix":"Read the accompanying remark code. Confirm whether the service should have been reported at all, or is included in another code billed.","category":"coding","dates":"Start: 01/24/2010"},{"code":"236","type":"CARC","meaning":"This procedure or procedure/modifier combination is not compatible with another procedure or procedure/modifier combination provided on the same day according to the National Correct Coding Initiative or workers compensation state regulations/ fee schedule requirements.","plain":"This code combination conflicts with National Correct Coding Initiative edits for the same day.","fix":"Look up the specific NCCI edit pair and whether it permits a modifier. Only append a modifier when the documentation genuinely shows separate and distinct services.","category":"coding","dates":"Start: 01/30/2011 | Last Modified: 07/01/2013"},{"code":"242","type":"CARC","meaning":"Services not provided by network/primary care providers.","plain":"The provider was out of network for this patient's plan.","fix":"Verify the provider's network participation for that plan. This is a contracting fix; check the plan's out-of-network patient-liability rules before billing the patient.","category":"other","dates":"Start: 06/03/2012 | Last Modified: 06/02/2013 Notes: This code replaces deactivated code 38"},{"code":"243","type":"CARC","meaning":"Services not authorized by network/primary care providers.","plain":"The plan required a network or primary-care provider to authorize this and they did not.","fix":"Confirm the plan's referral/authorization requirement and obtain it going forward.","category":"other","dates":"Start: 06/03/2012 | Last Modified: 06/02/2013 Notes: This code replaces deactivated code 38"},{"code":"252","type":"CARC","meaning":"An attachment/other documentation is required to adjudicate this claim/service. At least one Remark Code must be provided (may be comprised of either the NCPDP Reject Reason Code, or Remittance Advice Remark Code that is not an ALERT).","plain":"The payer needs records attached before it can decide this claim.","fix":"Read the accompanying remark code to see what is wanted, then send the requested documentation through the payer's stated channel.","category":"documentation","dates":"Start: 09/30/2012 | Last Modified: 06/02/2013"},{"code":"288","type":"CARC","meaning":"Referral absent","plain":"A required referral was not on file.","fix":"Confirm whether the plan requires a referral, obtain it from the primary-care provider if available, and follow the payer's process for submitting it.","category":"other","dates":"Start: 11/01/2017"},{"code":"B7","type":"CARC","meaning":"This provider was not certified/eligible to be paid for this procedure/service on this date of service. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The provider was not certified or eligible to be paid for this service on that date.","fix":"Check the provider's enrollment effective date and specialty with that payer. This is usually resolved through enrollment or credentialing, not by resubmitting the claim.","category":"other","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"B13","type":"CARC","meaning":"Previously paid. Payment for this claim/service may have been provided in a previous payment.","plain":"The payer believes this was already paid on an earlier remittance.","fix":"Search your posting history for the earlier payment. If it was truly paid, close the balance; if not, gather the remittance evidence before disputing.","category":"duplicate","dates":"Start: 01/01/1995"},{"code":"B15","type":"CARC","meaning":"This service/procedure requires that a qualifying service/procedure be received and covered. The qualifying other service/procedure has not been received/adjudicated. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"This code requires a qualifying service that the payer has not received or processed.","fix":"Identify the required qualifying service and confirm it was billed and adjudicated, then resubmit this line.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 07/01/2017"},{"code":"B20","type":"CARC","meaning":"Procedure/service was partially or fully furnished by another provider.","plain":"Another provider performed some or all of this service.","fix":"Verify who actually furnished the service and confirm the rendering provider on the claim is correct.","category":"other","dates":"Start: 01/01/1995 | Last Modified: 09/30/2007"},{"code":"CO-4","type":"CARC","meaning":"The procedure code is inconsistent with the modifier used. Usage: Refer to the 835 Healthcare Policy Identification Segment (loop 2110 Service Payment Information REF), if present.","plain":"The modifier on the line does not fit the procedure code it was attached to.","fix":"Pull the note and confirm what was actually done, then correct or remove the modifier and resubmit as a corrected claim. Do not add a modifier the documentation does not support.","category":"coding","dates":"Start: 01/01/1995 | Last Modified: 03/01/2020","note":"'CO-4' is not a single X12 code. It is claim adjustment group code 'CO' (Contractual Obligation) paired with claim adjustment reason code '4'. The group code says who owes the money; the reason code says why.","group":"CO","groupMeaning":"Contractual Obligation","base":"4"},{"code":"PR-1","type":"CARC","meaning":"Deductible Amount","plain":"The patient owes this amount because they had not met their deductible yet. This is not a denial.","fix":"Bill the patient for this balance. Confirm the deductible amount against the payer's eligibility response before billing.","category":"other","dates":"Start: 01/01/1995","note":"'PR-1' is not a single X12 code. It is claim adjustment group code 'PR' (Patient Responsibility) paired with claim adjustment reason code '1'. The group code says who owes the money; the reason code says why.","group":"PR","groupMeaning":"Patient Responsibility","base":"1"},{"code":"PR-2","type":"CARC","meaning":"Coinsurance Amount","plain":"The patient owes this percentage share of the allowed amount. This is not a denial.","fix":"Bill the patient for this balance.","category":"other","dates":"Start: 01/01/1995","note":"'PR-2' is not a single X12 code. It is claim adjustment group code 'PR' (Patient Responsibility) paired with claim adjustment reason code '2'. The group code says who owes the money; the reason code says why.","group":"PR","groupMeaning":"Patient Responsibility","base":"2"},{"code":"PR-3","type":"CARC","meaning":"Co-payment Amount","plain":"The patient owes their flat copay for the visit. This is not a denial.","fix":"Bill the patient for this balance if it was not collected at the front desk.","category":"other","dates":"Start: 01/01/1995","note":"'PR-3' is not a single X12 code. It is claim adjustment group code 'PR' (Patient Responsibility) paired with claim adjustment reason code '3'. The group code says who owes the money; the reason code says why.","group":"PR","groupMeaning":"Patient Responsibility","base":"3"},{"code":"M51","type":"RARC","meaning":"Missing/incomplete/invalid procedure code(s).","plain":"A procedure code is missing, incomplete, or invalid.","fix":"Add or correct the procedure code from the documentation and resubmit.","category":"documentation","dates":"Start: 01/01/1997 | Last Modified: 12/02/2004 Notes: (Modified 12/2/04) Related to N301"},{"code":"M76","type":"RARC","meaning":"Missing/incomplete/invalid diagnosis or condition.","plain":"A diagnosis is missing, incomplete, or invalid.","fix":"Add or correct the diagnosis code from the documentation and resubmit.","category":"documentation","dates":"Start: 01/01/1997 | Last Modified: 02/28/2003 Notes: (Modified 2/28/03)"},{"code":"M79","type":"RARC","meaning":"Missing/incomplete/invalid charge.","plain":"A charge amount is missing, incomplete, or invalid.","fix":"Correct the charge amount on the line and resubmit.","category":"documentation","dates":"Start: 01/01/1997 | Last Modified: 02/28/2003 Notes: (Modified 2/28/03)"},{"code":"M80","type":"RARC","meaning":"Not covered when performed during the same session/date as a previously processed service for the patient.","plain":"This was not covered because a similar service was already processed for the same session or date.","fix":"Check what else was billed that day. Only pursue it if the documentation shows a genuinely separate service.","category":"duplicate","dates":"Start: 01/01/1997 | Last Modified: 10/31/2002 Notes: (Modified 10/31/02)"},{"code":"M119","type":"RARC","meaning":"Missing/incomplete/invalid/ deactivated/withdrawn National Drug Code (NDC).","plain":"The National Drug Code is missing, invalid, deactivated, or withdrawn.","fix":"Look up the current NDC for the product actually administered and resubmit with the correct NDC and units.","category":"documentation","dates":"Start: 01/01/1997 | Last Modified: 04/01/2007 Notes: (Modified 2/28/03, 4/1/04)"},{"code":"MA04","type":"RARC","meaning":"Secondary payment cannot be considered without the identity of or payment information from the primary payer. The information was either not reported or was illegible.","plain":"Secondary billing cannot proceed without the primary payer's payment information.","fix":"Obtain the primary payer's remittance and resubmit the secondary claim with the primary payment details attached.","category":"coordination","dates":"Start: 01/01/1997"},{"code":"MA27","type":"RARC","meaning":"Missing/incomplete/invalid entitlement number or name shown on the claim.","plain":"The member entitlement number or name on the claim is missing, incomplete, or invalid.","fix":"Correct the member ID and name to match the insurance card exactly and resubmit.","category":"documentation","dates":"Start: 01/01/1997 | Last Modified: 02/28/2003 Notes: (Modified 2/28/03)"},{"code":"MA61","type":"RARC","meaning":"Missing/incomplete/invalid social security number.","plain":"The Social Security number is missing, incomplete, or invalid.","fix":"Correct the identifier in the patient record and resubmit.","category":"documentation","dates":"Start: 01/01/1997 | Last Modified: 03/01/2018 Notes: (Modified 2/28/03, 3/1/2018)"},{"code":"MA83","type":"RARC","meaning":"Did not indicate whether we are the primary or secondary payer.","plain":"The claim did not say whether this payer is primary or secondary.","fix":"Set the correct payer sequence on the claim and resubmit.","category":"coordination","dates":"Start: 01/01/1997 | Last Modified: 08/01/2005 Notes: (Modified 8/1/05)"},{"code":"MA112","type":"RARC","meaning":"Missing/incomplete/invalid group practice information.","plain":"Group practice information is missing, incomplete, or invalid.","fix":"Verify the group NPI and tax ID on the claim against your enrollment record and resubmit.","category":"documentation","dates":"Start: 01/01/1997 | Last Modified: 02/28/2003 Notes: (Modified 2/28/03)"},{"code":"MA120","type":"RARC","meaning":"Missing/incomplete/invalid CLIA certification number.","plain":"The CLIA certification number is missing, incomplete, or invalid.","fix":"Add the practice's current CLIA number to the claim. Confirm the test billed is within your CLIA certificate level before resubmitting.","category":"documentation","dates":"Start: 01/01/1997 | Last Modified: 02/28/2003 Notes: (Modified 2/28/03)"},{"code":"MA130","type":"RARC","meaning":"Your claim contains incomplete and/or invalid information, and no appeal rights are afforded because the claim is unprocessable. Please submit a new claim with the complete/correct information.","plain":"The claim was rejected as unprocessable, so there are no appeal rights — it must be corrected and sent again.","fix":"Do not file an appeal; it will not be accepted. Read the paired reason/remark codes, fix the missing or invalid data, and submit a brand-new claim.","category":"documentation","dates":"Start: 10/12/2001"},{"code":"N4","type":"RARC","meaning":"Missing/Incomplete/Invalid prior Insurance Carrier(s) EOB.","plain":"The prior insurance carrier's explanation of benefits is missing, incomplete, or invalid.","fix":"Attach the primary payer's remittance and resubmit.","category":"coordination","dates":"Start: 01/01/2000 | Last Modified: 03/06/2012 Notes: (Modified 2/28/03, 3/6/2012)"},{"code":"N19","type":"RARC","meaning":"Procedure code incidental to primary procedure.","plain":"This code is incidental to the primary procedure.","fix":"Confirm the bundling against the payer's policy. Only unbundle when the documentation supports a distinct service.","category":"coding","dates":"Start: 01/01/2000"},{"code":"N26","type":"RARC","meaning":"Missing itemized bill/statement.","plain":"An itemized bill or statement is missing.","fix":"Send the itemized statement through the payer's stated channel.","category":"documentation","dates":"Start: 01/01/2000 | Last Modified: 07/01/2008 Notes: (Modified 2/28/03, 7/1/2008) Related to N232"},{"code":"N30","type":"RARC","meaning":"Patient ineligible for this service.","plain":"The patient was not eligible for this service.","fix":"Re-verify eligibility and benefits for that date of service and rebill the correct payer if coverage was different.","category":"eligibility","dates":"Start: 01/01/2000 | Last Modified: 06/30/2003 Notes: (Modified 6/30/03)"},{"code":"N56","type":"RARC","meaning":"Procedure code billed is not correct/valid for the services billed or the date of service billed.","plain":"The procedure code is not correct or valid for the service or date billed.","fix":"Recode from the documentation using the code set in effect on the date of service and resubmit.","category":"coding","dates":"Start: 01/01/2000 | Last Modified: 02/28/2003 Notes: (Modified 2/28/03)"},{"code":"N95","type":"RARC","meaning":"This provider type/provider specialty may not bill this service.","plain":"This provider type or specialty is not permitted to bill this service.","fix":"Check the payer's provider-type rules for that code. This is usually an enrollment or scope issue rather than a claim error.","category":"other","dates":"Start: 07/31/2001 | Last Modified: 02/28/2003 Notes: (Modified 2/28/03)"},{"code":"N130","type":"RARC","meaning":"Consult plan benefit documents/guidelines for information about restrictions for this service.","plain":"Check the plan's own benefit documents for the limits that apply to this service.","fix":"Pull the payer's coverage policy or benefit grid for that code before deciding whether anything can be done.","category":"other","dates":"Start: 10/31/2002 | Last Modified: 11/01/2009 Notes: (Modified 4/1/07, 7/1/08, 11/1/09)"},{"code":"N195","type":"RARC","meaning":"The technical component must be billed separately.","plain":"Only the technical component belongs on a separate claim line.","fix":"Split the professional and technical components using the correct component modifier, but only if your practice actually furnished that component.","category":"coding","dates":"Start: 02/25/2003"},{"code":"N245","type":"RARC","meaning":"Incomplete/invalid plan information for other insurance.","plain":"The other insurance plan information is incomplete or invalid.","fix":"Collect complete secondary/primary plan details from the patient and resubmit.","category":"coordination","dates":"Start: 08/01/2004 | Last Modified: 03/14/2014 Notes: (Modified 3/14/2014)"},{"code":"N286","type":"RARC","meaning":"Missing/incomplete/invalid referring provider primary identifier.","plain":"The referring provider's identifier is missing, incomplete, or invalid.","fix":"Look up the referring provider's NPI in NPPES, correct it on the claim, and resubmit.","category":"documentation","dates":"Start: 12/02/2004"},{"code":"N290","type":"RARC","meaning":"Missing/incomplete/invalid rendering provider primary identifier.","plain":"The rendering provider's identifier is missing, incomplete, or invalid.","fix":"Correct the rendering provider NPI on the claim and resubmit.","category":"documentation","dates":"Start: 12/02/2004"},{"code":"N448","type":"RARC","meaning":"This drug/service/supply is not included in the fee schedule or contracted/legislated fee arrangement.","plain":"This item is not on the payer's fee schedule or contracted fee arrangement.","fix":"Check your contract and the payer's fee schedule for that code before disputing or writing off.","category":"other","dates":"Start: 07/01/2008 | Last Modified: 03/14/2014 Notes: (Modified 3/14/2014)"},{"code":"N517","type":"RARC","meaning":"Resubmit a new claim with the requested information.","plain":"The payer wants a new claim submitted with the requested information.","fix":"Submit a new claim including the requested information rather than an appeal.","category":"documentation","dates":"Start: 03/01/2009"},{"code":"N522","type":"RARC","meaning":"Duplicate of a claim processed, or to be processed, as a crossover claim.","plain":"This duplicates a claim that came across as a crossover from another payer.","fix":"Check whether the crossover claim already processed before resubmitting anything.","category":"duplicate","dates":"Start: 11/01/2009 | Last Modified: 03/01/2010"},{"code":"N657","type":"RARC","meaning":"This should be billed with the appropriate code for these services.","plain":"A different, more appropriate code should have been used for these services.","fix":"Re-read the documentation and select the code that matches what was actually performed, then resubmit as a corrected claim.","category":"coding","dates":"Start: 07/15/2013"},{"code":"N705","type":"RARC","meaning":"Incomplete/invalid documentation.","plain":"The documentation supplied was incomplete or invalid.","fix":"Review what the payer asked for and send complete records through the payer's stated channel.","category":"documentation","dates":"Start: 03/01/2014"},{"code":"N706","type":"RARC","meaning":"Missing documentation.","plain":"Documentation the payer required was missing.","fix":"Send the requested documentation through the payer's stated channel.","category":"documentation","dates":"Start: 03/01/2014"},{"code":"N823","type":"RARC","meaning":"Incomplete/Invalid procedure modifier(s).","plain":"A procedure modifier is incomplete or invalid.","fix":"Correct the modifier based on what the documentation supports and resubmit.","category":"coding","dates":"Start: 07/01/2019 | Last Modified: 11/01/2019"}];
+var CATEGORY_LABELS = {"coding":"Coding / modifier","coordination":"Coordination of benefits","documentation":"Documentation","duplicate":"Duplicate","eligibility":"Eligibility","timely":"Timely filing","other":"Other"};
+</script>
+<script>
+/* MineBilling denial-code lookup — pure search logic, no DOM.
+   This exact source is inlined into tools/denial-codes.html by build_denial_page.py. */
+var GROUP_CODES = {
+  CO: "Contractual Obligation",
+  OA: "Other Adjustment",
+  PI: "Payor Initiated Reduction",
+  PR: "Patient Responsibility"
+};
+
+function flatten(s) {
+  return String(s === null || s === undefined ? "" : s).toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function buildIndex(codes) {
+  var out = [];
+  for (var i = 0; i < codes.length; i++) {
+    var e = codes[i];
+    out.push({
+      entry: e,
+      flat: flatten(e.code),
+      base: flatten(e.base || e.code),
+      text: [e.code, e.type, e.meaning, e.plain, e.fix, e.category,
+             e.note || "", e.groupMeaning || ""].join(" · ").toLowerCase()
+    });
+  }
+  return out;
+}
+
+/* "CO-16" / "co 16" / "PR1" -> {group:"CO", rest:"16"}.  "coordination" -> {group:null}. */
+function splitGroupPrefix(q) {
+  var t = String(q === null || q === undefined ? "" : q).trim();
+  var solo = /^(CO|OA|PI|PR)$/i.exec(t);
+  if (solo) return { group: solo[1].toUpperCase(), rest: "" };
+  var m = /^(CO|OA|PI|PR)[\s\-_.\/]*([A-Za-z]{0,2}\d{1,4})$/i.exec(t);
+  if (m) return { group: m[1].toUpperCase(), rest: m[2] };
+  return { group: null, rest: t };
+}
+
+function codeSortKey(code) {
+  return {
+    letters: String(code).replace(/[^A-Za-z]/g, "").toUpperCase(),
+    num: /\d/.test(String(code)) ? parseInt(String(code).replace(/\D/g, ""), 10) : -1
+  };
+}
+
+function compareEntries(a, b) {
+  if (a.type !== b.type) return a.type === "CARC" ? -1 : 1;
+  var ka = codeSortKey(a.code), kb = codeSortKey(b.code);
+  if (ka.letters !== kb.letters) return ka.letters < kb.letters ? -1 : 1;
+  if (ka.num !== kb.num) return ka.num - kb.num;
+  return a.code < b.code ? -1 : (a.code > b.code ? 1 : 0);
+}
+
+/* Returns {query, category, mode, group, groupMeaning, results:[entry,...]}
+   mode: "all" (no query) | "group" (a bare group code was typed) | "search" */
+function searchCodes(index, rawQuery, category) {
+  var q = String(rawQuery === null || rawQuery === undefined ? "" : rawQuery).trim();
+  var cat = category || "";
+  var pool = [];
+  for (var i = 0; i < index.length; i++) {
+    if (!cat || index[i].entry.category === cat) pool.push(index[i]);
+  }
+
+  var out = { query: q, category: cat, mode: "all", group: null, groupMeaning: null, results: [] };
+
+  if (!q) {
+    for (var a = 0; a < pool.length; a++) out.results.push(pool[a].entry);
+    out.results.sort(compareEntries);
+    return out;
+  }
+
+  var qflat = flatten(q);
+  var exactFull = false;
+  for (var b = 0; b < index.length; b++) if (index[b].flat === qflat) { exactFull = true; break; }
+
+  var split = splitGroupPrefix(q);
+  var restFlat = split.rest ? flatten(split.rest) : "";
+  if (split.group && !exactFull) {
+    out.group = split.group;
+    out.groupMeaning = GROUP_CODES[split.group] || null;
+  }
+  if (split.group && !split.rest) { out.mode = "group"; return out; }
+
+  out.mode = "search";
+  var tokens = q.toLowerCase().split(/\s+/).filter(function (t) { return t.length >= 3; });
+  var scored = [];
+  for (var c = 0; c < pool.length; c++) {
+    var x = pool[c], s = 0;
+    if (x.flat === qflat) s = 100;
+    else if (restFlat && x.flat === restFlat) s = 95;
+    else if (restFlat && x.base === restFlat && x.base !== x.flat) s = 90;
+    else if (x.base === qflat && x.base !== x.flat) s = 90;
+    else if (qflat.length >= 2 && x.flat.indexOf(qflat) === 0) s = 60;
+    else if (restFlat.length >= 2 && x.flat.indexOf(restFlat) === 0) s = 55;
+    else if (tokens.length) {
+      var all = true;
+      for (var t = 0; t < tokens.length; t++) if (x.text.indexOf(tokens[t]) === -1) { all = false; break; }
+      if (all) s = 20;
+    }
+    if (s > 0) scored.push({ s: s, e: x.entry });
+  }
+  scored.sort(function (m, n) {
+    if (m.s !== n.s) return n.s - m.s;
+    return compareEntries(m.e, n.e);
+  });
+  for (var d = 0; d < scored.length; d++) out.results.push(scored[d].e);
+  return out;
+}
+</script>
+<script>
+(function () {
+  var index = buildIndex(DENIAL_CODES);
+  var qEl = document.getElementById("q");
+  var catEl = document.getElementById("cat");
+  var hits = document.getElementById("hits");
+  var statusEl = document.getElementById("status");
+  var hintEl = document.getElementById("grouphint");
+
+  function el(tag, cls, txt) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (txt !== undefined && txt !== null) n.textContent = txt;
+    return n;
+  }
+
+  function card(e) {
+    var li = el("li");
+    var head = el("div", "hit-head");
+    head.appendChild(el("span", "code", e.code));
+    head.appendChild(el("span", "tag", e.type));
+    head.appendChild(el("span", "tag", CATEGORY_LABELS[e.category] || e.category));
+    li.appendChild(head);
+
+    li.appendChild(el("p", "", e.plain));
+
+    var off = el("p", "official");
+    off.appendChild(el("span", "label", "Official X12 text: "));
+    off.appendChild(document.createTextNode("\u201C" + e.meaning + "\u201D"));
+    li.appendChild(off);
+
+    var fix = el("p");
+    fix.appendChild(el("span", "label", "Typical next step: "));
+    fix.appendChild(document.createTextNode(e.fix));
+    li.appendChild(fix);
+
+    if (e.note) li.appendChild(el("p", "muted", e.note));
+    if (e.dates) li.appendChild(el("p", "muted", "X12 record: " + e.dates));
+    return li;
+  }
+
+  function render() {
+    var r = searchCodes(index, qEl.value, catEl.value);
+    hits.textContent = "";
+
+    if (r.group && r.groupMeaning) {
+      hintEl.hidden = false;
+      hintEl.textContent = "\u201C" + r.group + "\u201D is a claim adjustment group code — "
+        + r.groupMeaning + ". It pairs with the reason code that follows it"
+        + (r.mode === "group" || r.results.length === 0
+             ? ". Type it together with a reason code, e.g. \u201C" + r.group + "-16\u201D."
+             : ", shown below.");
+    } else {
+      hintEl.hidden = true;
+      hintEl.textContent = "";
+    }
+
+    var n = r.results.length;
+    if (r.mode === "all") {
+      var word = n === 1 ? " code" : " codes";
+      statusEl.textContent = r.category
+        ? n + word + " in this category."
+        : n + word + ". Type to narrow it down.";
+    } else if (r.mode === "group") {
+      statusEl.textContent = "That is a group code, not a reason code — see the note below.";
+    } else if (n === 0) {
+      statusEl.textContent = "No match in this list. It may still be a valid code — this page "
+        + "carries a primary-care subset, so check the X12 source linked at the bottom.";
+    } else {
+      statusEl.textContent = n === 1 ? "1 match." : n + " matches.";
+    }
+
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < n; i++) frag.appendChild(card(r.results[i]));
+    hits.appendChild(frag);
+  }
+
+  qEl.addEventListener("input", render);
+  catEl.addEventListener("change", render);
+
+  var chips = document.querySelectorAll(".chips button");
+  for (var i = 0; i < chips.length; i++) {
+    chips[i].addEventListener("click", function () {
+      qEl.value = this.getAttribute("data-q") || "";
+      catEl.value = "";
+      render();
+      qEl.focus();
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

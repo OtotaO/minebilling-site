@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timely Filing Deadline Calculator — Medicare, Medicaid &amp; commercial limits | MineBilling</title>
+<meta name="description" content="Free timely filing deadline calculator: pick a payer, enter the date of service, and see the filing deadline and days remaining. Medicare's 1-calendar-year limit, Illinois Medicaid 180 days, and commercial limits — each shown with its source and as-of date. For commercial payers your contract controls, so you can enter your own number.">
+<meta property="og:title" content="Timely filing deadline calculator — with the source for every number">
+<meta property="og:description" content="How long do you have to file a claim? Pick the payer, enter the date of service, see the deadline and days remaining. Every limit cited to the payer's own published policy.">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://ototao.github.io/minebilling-site/tools/timely-filing.html">
+<link rel="stylesheet" href="../style.css">
+<style>
+  /* page-local additions; palette variables come from style.css */
+  input[type="date"], input[type="text"] {
+    font: inherit; padding: .55rem .7rem; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--paper); color: var(--ink); max-width: 100%;
+  }
+  .warn {
+    background: #FDF7E8; border: 1px solid var(--gold); border-left-width: 4px;
+    border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.6rem 0;
+  }
+  .warn h2, .warn h3 { margin-top: 0; }
+  .warn p { color: var(--ink); }
+  .warn p:last-child { margin-bottom: 0; }
+  .result-warn {
+    background: #FDF7E8; border-left: 4px solid var(--gold); border-radius: 6px;
+    padding: .6rem .85rem; font-weight: 600; color: var(--ink);
+  }
+  .result p.result-warn { margin: .7rem 0 0; font-size: .9rem; }
+  .status { font-weight: 700; }
+  .status-past { color: #8A2432; }
+  .status-today, .status-urgent { color: #8A5A12; }
+  .status-soon { color: var(--ink-2); }
+  .status-ok { color: var(--teal-deep); }
+  .deadline-date { font-family: Charter, Georgia, serif; font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  table.limits { border-collapse: collapse; width: 100%; font-size: .88rem; min-width: 620px; }
+  table.limits th, table.limits td { text-align: left; vertical-align: top; padding: .6rem .8rem; border-bottom: 1px solid var(--line); }
+  table.limits thead th { background: var(--good-bg); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+  table.limits tbody tr:last-child th, table.limits tbody tr:last-child td { border-bottom: 0; }
+  table.limits th[scope="row"] { font-weight: 600; }
+  .srcline { font-size: .8rem; color: var(--ink-2); margin: .3rem 0 0; }
+  .quote { font-size: .88rem; color: var(--ink-2); border-left: 3px solid var(--line); padding-left: .8rem; margin: .6rem 0 0; }
+  details { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: .8rem 1rem; margin: .8rem 0; }
+  details summary { cursor: pointer; font-weight: 600; }
+  details p { font-size: .9rem; }
+  .qa h3 { font-size: 1.05rem; margin-top: 1.6rem; }
+</style>
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="../">MineBilling<span class="tld">.</span></a>
+  <nav class="site">
+    <a href="em-calculator.html">E/M calculator</a>
+    <a href="npi-validator.html">NPI validator</a>
+    <a href="../#free-look">Free scorecard</a>
+  </nav>
+</header>
+<main>
+  <h1>Timely filing deadline calculator</h1>
+  <p class="lede">How long do you have to file the claim? Pick the payer, enter the date
+  of service, and see the filing deadline, the days remaining, and where that number
+  comes from. Every limit here is quoted from the payer's own published policy or the
+  governing regulation, with its source and as-of date shown next to the answer.
+  Everything runs in your browser — no patient data, no sign-up, nothing leaves your device.</p>
+
+  <div class="warn">
+    <h2>For commercial payers, your contract is the deadline — not this page</h2>
+    <p>Published national numbers from UnitedHealthcare, Cigna, Aetna and BCBSIL are
+    defaults or floors. The executed participation agreement controls, and it can be
+    shorter. A self-funded employer group can set a different deadline for one member
+    than for the next, and state law can override both. UnitedHealthcare says it plainly:
+    <em>“Timely filing limits vary based on state requirements and contracts. Refer to
+    your Agreement for your specific timely filing requirements.”</em></p>
+    <p><strong>So the field below marked <em>my contract says ___ days</em> is the one to
+    use for any commercial payer whose agreement you have in hand.</strong> It overrides
+    the published default.</p>
+  </div>
+
+  <form class="calc" id="calc" onsubmit="return false">
+    <div class="field">
+      <label for="payer">Payer / program</label>
+      <select id="payer">
+        <option value="">— select a payer —</option>
+      </select>
+      <p class="hint">Only payers whose limit we could verify against a primary source
+      appear here. If yours is missing, that is deliberate — see
+      <a href="#gaps">what this calculator does not know</a> and use the contract field below.</p>
+    </div>
+
+    <div class="field">
+      <label for="dos" id="dos-label">Date of service</label>
+      <input type="date" id="dos">
+      <p class="hint" id="clock-hint">The clock start differs by payer and by situation —
+      select a payer and this will tell you exactly which date to enter.</p>
+    </div>
+
+    <fieldset>
+      <legend>My contract says ___ days</legend>
+      <div class="field">
+        <label for="contract">Days allowed by your participation agreement (optional, but it wins)</label>
+        <input type="number" id="contract" min="1" max="1095" inputmode="numeric" placeholder="e.g. 90">
+        <p class="hint">Enter the number from your executed agreement and the calculator
+        will use it instead of the published default, counting calendar days from the
+        date above. Leave blank to use the published number. If you do not know your
+        contracted limit, that is worth finding out before it costs you a claim — it is
+        one of the first things we check in the free scorecard.</p>
+      </div>
+    </fieldset>
+  </form>
+
+  <div class="result" id="result" role="status" aria-live="polite" hidden>
+    <h3 id="r-head"></h3>
+    <p><span class="deadline-date" id="r-date"></span></p>
+    <p id="r-remaining"></p>
+    <p id="r-contractwarn" class="result-warn"></p>
+    <p id="r-basis" class="muted"></p>
+    <p id="r-second"></p>
+    <p id="r-weekend" class="muted"></p>
+    <p id="r-clock" class="muted"></p>
+    <p class="srcline" id="r-source"></p>
+    <p class="quote" id="r-limittext"></p>
+    <p class="quote" id="r-contractnote"></p>
+    <p class="srcline"><strong>Not legal or billing advice.</strong> Verify against your
+    participation agreement and the payer's current published policy before you rely on
+    this date. Deadlines run to the payer's <em>receipt</em> of the claim, not to the day
+    you press send.</p>
+  </div>
+
+  <h2>How this calculator counts</h2>
+  <p>Three things are easy to get wrong, so they are worth stating:</p>
+  <ul>
+    <li><strong>A calendar-year rule is not “365 days.”</strong> Medicare's limit is one
+    calendar year from the date of service, so a 1 March 2023 service is timely through
+    1 March 2024 — 366 days, because 2024 is a leap year. Counting 365 days would put the
+    deadline a day early. CMS also states the leap-day case explicitly: <em>“Claims having
+    a date of service on February 29 must be filed by February 28 of the following year to
+    be considered timely filed.”</em> This page applies calendar arithmetic where the rule
+    is expressed in years or months, and day arithmetic only where the payer publishes a
+    day count.</li>
+    <li><strong>Day-count rules are computed as start date + N calendar days.</strong>
+    If your payer counts the date of service itself as day 1, the true deadline is one day
+    earlier than shown. Payers rarely publish which convention they use, so treat the
+    displayed date as the <em>latest possible</em> deadline and never file on it.</li>
+    <li><strong>The clock runs to receipt, not to submission.</strong> Medicare measures
+    against the contractor's receipt date; Illinois HFS stamps a Document Control Number
+    encoding the Julian date it received the claim; UnitedHealthcare measures to “the date
+    by which UnitedHealthcare, or its delegate, receives the claim.” Clearinghouse transit
+    and rework time comes out of your margin, not theirs.</li>
+  </ul>
+  <p class="fineprint">The “closing soon / act now” bands (30 and 14 days) are our own
+  working thresholds for triage, not payer rules. No payer publishes them.</p>
+
+  <h2>Timely filing limits at a glance</h2>
+  <p>Every row is quoted from the source linked in the last column. Scope matters more
+  than the number: “Blue Cross Blue Shield” is not one payer, Medicare Advantage is not
+  Medicare, and Medicaid managed care is not state Medicaid.</p>
+  <div class="tablewrap">
+  <table class="limits">
+    <thead>
+      <tr><th scope="col">Payer / program</th><th scope="col">Limit</th><th scope="col">Clock starts</th><th scope="col">Source (as of)</th></tr>
+    </thead>
+    <tbody id="glance">
+      <tr data-id="medicare_ffs">
+        <th scope="row">Medicare fee-for-service (Part A &amp; B)</th>
+        <td>1 calendar year from the date of service</td>
+        <td>Date of service (professional “From” date)</td>
+        <td><a href="https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c01.pdf" rel="noopener">CMS Pub 100-04 Ch.1 §70</a> · 42 CFR 424.44(a) (2026-06)</td>
+      </tr>
+      <tr data-id="medicaid_federal">
+        <th scope="row">Medicaid — federal ceiling (all states)</th>
+        <td>12 months from the date of service (federal ceiling, not your deadline)</td>
+        <td>Date of service</td>
+        <td><a href="https://www.govinfo.gov/content/pkg/CFR-2023-title42-vol4/xml/CFR-2023-title42-vol4-sec447-45.xml" rel="noopener">42 CFR 447.45(d)(1)</a> (2023 ed.)</td>
+      </tr>
+      <tr data-id="il_medicaid_ffs">
+        <th scope="row">Illinois Medicaid (HFS) — fee-for-service, non-institutional</th>
+        <td>180 days from the date of service</td>
+        <td>Date of service (measured to HFS receipt)</td>
+        <td><a href="https://hfs.illinois.gov/content/dam/soi/en/web/hfs/sitecollectiondocuments/nipstimelyfiling.pdf" rel="noopener">HFS non-institutional timely filing</a> (2022-12-12)</td>
+      </tr>
+      <tr data-id="tx_medicaid_ffs">
+        <th scope="row">Texas Medicaid (TMHP) — fee-for-service</th>
+        <td>95 days from each date of service</td>
+        <td>Each date of service</td>
+        <td><a href="https://www.tmhp.com/sites/default/files/file-library/resources/provider-manuals/tmppm/pdf-chapters/2026/2026-06-june/1_06_claims_filing.pdf" rel="noopener">TMPPM Vol.1 §6.1.4</a> (2026-06)</td>
+      </tr>
+      <tr data-id="ny_medicaid">
+        <th scope="row">New York Medicaid (eMedNY) — fee-for-service</th>
+        <td>90 days from the date of service</td>
+        <td>Date of service</td>
+        <td><a href="https://www.emedny.org/providermanuals/allproviders/pdfs/information_for_all_providers-general_billing.pdf" rel="noopener">eMedNY General Billing</a> (2025-06-09)</td>
+      </tr>
+      <tr data-id="uhc_comm_nonpar">
+        <th scope="row">UnitedHealthcare — commercial, NON-participating</th>
+        <td>180 days from the date of service</td>
+        <td>Date of service</td>
+        <td><a href="https://www.uhcprovider.com/content/dam/provider/docs/public/admin-guides/2026-UHC-Administrative-Guide.pdf" rel="noopener">2026 UHC Administrative Guide</a> (2026)</td>
+      </tr>
+      <tr data-id="uhc_ma_noncontracted">
+        <th scope="row">UnitedHealthcare Medicare Advantage — NON-contracted</th>
+        <td>365 days from the through date of service</td>
+        <td>“Through” date of service</td>
+        <td><a href="https://www.uhcprovider.com/content/dam/provider/docs/public/admin-guides/2026-UHC-Administrative-Guide.pdf" rel="noopener">2026 UHC Administrative Guide</a> (2026)</td>
+      </tr>
+      <tr data-id="uhc_cob">
+        <th scope="row">UnitedHealthcare — secondary / COB</th>
+        <td>At least 90 days from the primary payer's payment, contest, denial or notice</td>
+        <td>Primary payer's payment / contest / denial / notice date</td>
+        <td><a href="https://www.uhcprovider.com/content/dam/provider/docs/public/admin-guides/2026-UHC-Administrative-Guide.pdf" rel="noopener">2026 UHC Administrative Guide</a> (2026)</td>
+      </tr>
+      <tr data-id="cigna_par">
+        <th scope="row">Cigna Healthcare — commercial, participating</th>
+        <td>90 days from the date of service</td>
+        <td>Date of service (last date if consecutive days)</td>
+        <td><a href="https://www.cigna.com/health-care-providers/coverage-and-claims/submit-claims" rel="noopener">Cigna — submit claims</a> (policy page dated 2015-04-01)</td>
+      </tr>
+      <tr data-id="cigna_oon">
+        <th scope="row">Cigna Healthcare — commercial, out-of-network</th>
+        <td>180 days from the date of service</td>
+        <td>Date of service (last date if consecutive days)</td>
+        <td><a href="https://www.cigna.com/health-care-providers/coverage-and-claims/submit-claims" rel="noopener">Cigna — submit claims</a> (policy page dated 2015-04-01)</td>
+      </tr>
+      <tr data-id="aetna_ny">
+        <th scope="row">Aetna — New York commercial only</th>
+        <td>120 days from the date of service</td>
+        <td>Date of service</td>
+        <td><a href="https://www.aetna.com/content/dam/aetna/pdfs/aetnacom/healthcare-professionals/documents-forms/ProviderManual-StateSpplmt.pdf" rel="noopener">Aetna Provider Manual State Supplement</a> (2025-12)</td>
+      </tr>
+      <tr data-id="bcbsil_comm">
+        <th scope="row">BCBSIL — commercial non-HMO PPO, participating</th>
+        <td>180 days from the date of service</td>
+        <td>Date of service; inpatient: discharge/transfer; secondary: your receipt of the primary EOB</td>
+        <td><a href="https://www.bcbsil.com/provider/education/education-reference/news/2024/10-28-2024-follow-timely-filing-requirements" rel="noopener">BCBSIL provider news</a> (2024-10-28)</td>
+      </tr>
+      <tr data-id="bcbsil_gov">
+        <th scope="row">BCBSIL — government programs (BCCHP, MMAI, Medicare Advantage), participating</th>
+        <td>180 days from the service or discharge date</td>
+        <td>Date of service or discharge date</td>
+        <td><a href="https://www.bcbsil.com/provider/education/education-reference/news/2024/10-28-2024-follow-timely-filing-requirements" rel="noopener">BCBSIL provider news</a> (2024-10-28)</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2 id="gaps">What this calculator does not know</h2>
+  <p>These are deliberately absent. An honest gap costs you a phone call; an invented
+  deadline costs you the claim.</p>
+  <ul>
+    <li><strong>Aetna's national commercial limit.</strong> Aetna's current national
+    provider manual for health care professionals contains no timely-filing day count —
+    we searched the full text. Widely repeated third-party figures (90 days, 180 days,
+    12 months) could not be traced to any Aetna-published document, so none is recorded
+    here. Read your agreement or call Aetna provider services, then use the contract field.
+    The New York row above exists only because New York law imposes it, and it does not
+    generalise to Illinois or anywhere else.</li>
+    <li><strong>UnitedHealthcare commercial, <em>participating</em>.</strong> UHC publishes
+    only a floor — “we, or our capitated care provider, allow at least 90 days for
+    participating health care providers” — and then tells you the Agreement sets the actual
+    number. There is no national participating figure to calculate with. Do not borrow the
+    180-day non-participating row for an in-network clinic.</li>
+    <li><strong>Illinois Medicaid managed care.</strong> The 180-day HFS number above is
+    fee-for-service only. HealthChoice Illinois MCOs set their own deadlines by contract,
+    and a large share of Illinois Medicaid volume is managed care. We did not source those.</li>
+    <li><strong>Corrected claims usually get no new clock.</strong> Medicare: an adjustment
+    to add an item or service is “not permitted after the expiration of the time limitation
+    for filing of the initial claim.” UnitedHealthcare: the original day count “also applies
+    to submission of corrected claims.” BCBSIL: “Corrected claims must still be filed within
+    the timely filing deadlines” — and you cannot correct until the original has adjudicated.
+    New York Medicaid is the one exception we found, with its own 60-day-from-notification
+    window. Calculate corrections from the original date of service.</li>
+    <li><strong>Appeal and reconsideration deadlines.</strong> Separate from filing limits
+    and frequently shorter. Not researched here, and they must not be inferred from the
+    numbers above.</li>
+    <li><strong>Humana, Elevance/Anthem, Centene/Ambetter, Molina, TRICARE, and every Blue
+    plan outside Illinois.</strong> Not sourced in this pass, so they are omitted rather
+    than approximated.</li>
+    <li><strong>Medicare reopenings</strong> (Pub 100-04 Chapter 34) and any general rule
+    that Medicare as secondary payer gets extra time. The only secondary-claim extension
+    we could verify is the narrow one for claims filed after a bankrupt primary payer's
+    liquidation. Absent a verified exception, plan on the ordinary one-year limit.</li>
+  </ul>
+
+  <div class="qa">
+  <h2>Common questions</h2>
+
+  <h3>What is the Medicare timely filing limit?</h3>
+  <p>One calendar year from the date of service. 42 CFR 424.44(a): “For services furnished
+  on or after January 1, 2010, the claim must be filed no later than the close of the
+  period ending 1 calendar year after the date of service.” For professional claims the
+  clock starts on the line-item “From” date; for institutional span-date claims it starts
+  on the “Through” date. Note what CMS says about missing it: a denial for untimely filing
+  “does not constitute an initial determination. As such, the determination that a claim
+  was not filed timely is not subject to appeal.” Limited <em>regulatory</em> exceptions
+  exist at 42 CFR 424.44(b), and there are four of them: administrative error; retroactive
+  Medicare entitlement; retroactive Medicare entitlement where a State Medicaid agency
+  recovered its payment 6 months or more after the service; and retroactive disenrollment
+  from a Medicare Advantage plan or a PACE organization. There is no general good-cause
+  escape. One extension is automatic rather than discretionary — 42 CFR 424.44(c): if the
+  last day of the period falls on a “Federal nonworkday (a Saturday, Sunday, legal holiday,
+  or a day which by statute or Executive Order is declared to be a nonworkday for Federal
+  employees), the time is extended to the next succeeding workday.” This calculator does
+  not apply that extension, so the date it shows is the earlier, safer one.</p>
+
+  <h3>How long do I have to file a claim?</h3>
+  <p>It depends entirely on who you are billing, and for commercial payers on what you
+  signed. The range in the table above runs from 90 days (New York Medicaid, Cigna
+  participating) to a full calendar year (Medicare). Two claims to the same commercial
+  payer, from the same clinic, in the same week can carry different deadlines because the
+  two members work for different self-funded employers.</p>
+
+  <h3>Does a clearinghouse rejection count as a filed claim?</h3>
+  <p>No — and this is one of the most expensive silent failures in a small practice.
+  UnitedHealthcare states it directly: “UnitedHealthcare claims that are rejected are not
+  proof of timely filing as rejections require further action from the provider before the
+  claim can be adjudicated.” A claim sitting in a rejection queue is, for deadline purposes,
+  a claim that was never filed — and it will not appear on an aging report that only counts
+  claims you believe you submitted.</p>
+
+  <h3>Which date starts the clock on a secondary claim?</h3>
+  <p>Not the date of service, and not the same event for every payer. Cigna measures from
+  “the processing date indicated on the primary carrier's Explanation of Benefits (EOB) or
+  Explanation of Payment (EOP).” BCBSIL measures from “the date of the participating
+  provider's receipt of the explanation of benefits from the primary payer”. UnitedHealthcare
+  measures from “the day of payment, contest, denial or notice from the primary payer.”
+  Processing date and receipt date are not the same day. Read the exact trigger before you
+  count.</p>
+
+  <h3>Why do these numbers go stale?</h3>
+  <p>Payers republish without notice. The Texas Medicaid manual is reissued monthly; the
+  Cigna policy page behind the 90/180-day figures carries a page date of 2015-04-01; the
+  Illinois HFS document was last revised 2022-12-12. That is why every row here shows its
+  as-of date instead of hiding it. Re-verify before a deadline decision.</p>
+  </div>
+
+  <section class="cta-box">
+    <h2>How many claims are already past the deadline?</h2>
+    <p>Most practices do not know, because a claim that was rejected upstream never shows
+    up as unpaid. MineBilling's free scorecard reviews 60 days of your billed claims and
+    remittances — after we sign a Business Associate Agreement; we take no patient data
+    before that — and reports what is denied, why, and what is aging toward a filing
+    deadline. <a href="../#free-look">Request the free scorecard</a> — it's yours to keep
+    either way, whether or not we ever work together.</p>
+  </section>
+
+  <h2>Sources</h2>
+  <p class="fineprint">
+    CMS, <a href="https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c01.pdf" rel="noopener">Medicare Claims Processing Manual, Pub 100-04 Ch.1 §70</a> ·
+    <a href="https://www.govinfo.gov/content/pkg/CFR-2023-title42-vol3/xml/CFR-2023-title42-vol3-sec424-44.xml" rel="noopener">42 CFR 424.44</a> ·
+    <a href="https://www.govinfo.gov/content/pkg/CFR-2023-title42-vol4/xml/CFR-2023-title42-vol4-sec447-45.xml" rel="noopener">42 CFR 447.45</a> ·
+    <a href="https://hfs.illinois.gov/content/dam/soi/en/web/hfs/sitecollectiondocuments/nipstimelyfiling.pdf" rel="noopener">Illinois HFS non-institutional timely filing</a> ·
+    <a href="https://www.tmhp.com/sites/default/files/file-library/resources/provider-manuals/tmppm/pdf-chapters/2026/2026-06-june/1_06_claims_filing.pdf" rel="noopener">Texas Medicaid Provider Procedures Manual Vol.1 §6</a> ·
+    <a href="https://www.emedny.org/providermanuals/allproviders/pdfs/information_for_all_providers-general_billing.pdf" rel="noopener">eMedNY Information for All Providers — General Billing</a> ·
+    <a href="https://www.uhcprovider.com/content/dam/provider/docs/public/admin-guides/2026-UHC-Administrative-Guide.pdf" rel="noopener">2026 UnitedHealthcare Care Provider Administrative Guide</a> ·
+    <a href="https://www.cigna.com/health-care-providers/coverage-and-claims/submit-claims" rel="noopener">Cigna — submit claims</a> ·
+    <a href="https://www.aetna.com/document-library/health-care-professionals/office-manual-hcp.pdf" rel="noopener">Aetna office manual for health care professionals</a> and
+    <a href="https://www.aetna.com/content/dam/aetna/pdfs/aetnacom/healthcare-professionals/documents-forms/ProviderManual-StateSpplmt.pdf" rel="noopener">state supplement</a> ·
+    <a href="https://www.bcbsil.com/provider/education/education-reference/news/2024/10-28-2024-follow-timely-filing-requirements" rel="noopener">BCBSIL timely filing requirements</a> and
+    <a href="https://www.bcbsil.com/docs/provider/il/standards/cpcp/2024/cpcp025-12242024.pdf" rel="noopener">CPCP025 corrected claims</a>.
+    <br>This calculator is educational only and is <strong>not legal, billing, coding, or
+    compliance advice</strong>. Verify every date against your participation agreement and
+    the payer's current published policy. CPT® is a registered trademark of the American
+    Medical Association.
+  </p>
+</main>
+<footer class="site">
+  <div class="inner">
+    <p>© 2026 MineBilling. General information, not billing, coding, legal, or medical advice.</p>
+  </div>
+</footer>
+<script>
+/* ==BEGIN CORE== */
+/* Pure logic + data. No DOM access below this marker until ==END CORE==.
+   Data transcribed from /Users/ototao/medcode/tools/scorecard/data/timely_filing.json
+   (research pass R3, primary sources only). Entries whose limit could not be verified
+   as a number are intentionally NOT in this array. */
+var PAYERS = [
+  {
+    id: "medicare_ffs",
+    group: "Medicare",
+    label: "Medicare fee-for-service (Part A & B)",
+    kind: "government",
+    rule: "calendar_years",
+    years: 1,
+    limit_display: "1 calendar year from the date of service",
+    date_label: "Date of service",
+    date_hint: "Professional claims (CMS-1500 / 837P): the line-item “From” date. Institutional span-date claims (UB-04 / 837I): the “Through” date.",
+    limit_text: "42 CFR 424.44(a): “For services furnished on or after January 1, 2010, the claim must be filed no later than the close of the period ending 1 calendar year after the date of service.” CMS Pub 100-04 Ch.1 §70.1 adds: “Claims having a date of service on February 29 must be filed by February 28 of the following year to be considered timely filed.”",
+    clock_starts: "Date of service; measured to the Medicare contractor's RECEIPT date, not your send date.",
+    contract_note: "Regulatory — not negotiable, and it does not vary by clinic. CMS Pub 100-04 Ch.1 §70.4: a denial for untimely filing “does not constitute an initial determination. As such, the determination that a claim was not filed timely is not subject to appeal.” One extension applies automatically: 42 CFR 424.44(c) provides that if the last day of the filing period falls on a “Federal nonworkday (a Saturday, Sunday, legal holiday, or a day which by statute or Executive Order is declared to be a nonworkday for Federal employees), the time is extended to the next succeeding workday” — this page does not apply that extension, so the date shown is the earlier, safer one. Further limited exceptions exist at 42 CFR 424.44(b) (administrative error, retroactive entitlement, State Medicaid recoupment 6+ months after service, retroactive MA/PACE disenrollment) — these are extensions, not a general good-cause escape.",
+    source_url: "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c01.pdf",
+    source_name: "CMS Pub 100-04, Medicare Claims Processing Manual, Ch.1 §70",
+    as_of: "2026-06-11 (Rev. 13826; §70.4–70.5 Rev. 12909 issued 2024-10-24)"
+  },
+  {
+    id: "medicaid_federal",
+    group: "Medicaid",
+    label: "Medicaid — federal ceiling (any state)",
+    kind: "government",
+    rule: "calendar_years",
+    years: 1,
+    limit_display: "12 months from the date of service (federal ceiling, not your deadline)",
+    date_label: "Date of service",
+    date_hint: "Date of service. This is the federal outer limit — your state's shorter deadline is the one that actually denies the claim.",
+    limit_text: "42 CFR 447.45(d)(1): “The Medicaid agency must require providers to submit all claims no later than 12 months from the date of service.”",
+    clock_starts: "Date of service.",
+    contract_note: "This is a CEILING, not a target. States impose shorter deadlines (Illinois 180 days, Texas 95 days, New York 90 days) and Texas enforces both its 95-day rule AND the 365-day federal one. Medicaid MANAGED CARE plans set their own deadlines by contract and are not covered by this entry. The regulation is written in months, so this page computes it as the same calendar date 12 months later; CMS publishes no day-count clarification for it, unlike the Medicare rule.",
+    source_url: "https://www.govinfo.gov/content/pkg/CFR-2023-title42-vol4/xml/CFR-2023-title42-vol4-sec447-45.xml",
+    source_name: "42 CFR 447.45(d)(1)",
+    as_of: "2023 CFR annual edition (verified 2026-07-29)"
+  },
+  {
+    id: "il_medicaid_ffs",
+    group: "Medicaid",
+    label: "Illinois Medicaid (HFS) — fee-for-service, non-institutional",
+    kind: "government",
+    rule: "days",
+    days: 180,
+    limit_display: "180 days from the date of service",
+    date_label: "Date of service",
+    date_hint: "Date of service. HFS stamps a Document Control Number encoding the Julian date it RECEIVED the claim — the clock runs to receipt, not to your send date.",
+    limit_text: "“In accordance with Public Act 097-0689, claims received with dates of service on or after July 1, 2012, are subject to a timely filing deadline of 180 days from date of service, with certain exceptions.” “Timely filing deadlines apply to both initial and re-submitted claims.”",
+    clock_starts: "Date of service, measured to HFS receipt.",
+    contract_note: "Statutory (Public Act 097-0689), not contractual. Published exceptions run on different clocks: Medicare crossovers and Medicare-denied claims 2 years from DOS; third-party liability 180 days after the TPL source's final adjudication; TPL recoupment 180 days from the recoupment letter; retroactive eligibility 180 days from the department's system update; local-government providers in a county over 3,000,000 population 12 months. Exceptions require a manual override on form HFS 1624, submitted as an electronic attachment. This entry covers NON-INSTITUTIONAL (professional) claims only, and does NOT cover HealthChoice Illinois managed-care plans.",
+    source_url: "https://hfs.illinois.gov/content/dam/soi/en/web/hfs/sitecollectiondocuments/nipstimelyfiling.pdf",
+    source_name: "Illinois HFS — Non-Institutional Provider Timely Filing",
+    as_of: "2022-12-12 (document revision date; re-verified 2026-07-29)"
+  },
+  {
+    id: "tx_medicaid_ffs",
+    group: "Medicaid",
+    label: "Texas Medicaid (TMHP) — fee-for-service",
+    kind: "government",
+    rule: "days",
+    days: 95,
+    limit_display: "95 days from each date of service",
+    date_label: "Date of service",
+    date_hint: "Each date of service has its own 95-day clock. Where another payer is primary, the clock instead runs 95 days from that payer's disposition date.",
+    limit_text: "“Unless otherwise stated, claims must be received by TMHP within 95 days of each DOS.” Separately: “the 365-day federal filing deadline must still be met.” Out-of-state providers get 365 days from the DOS.",
+    clock_starts: "Each date of service; measured to TMHP receipt.",
+    contract_note: "State program rule, not contractual. TWO clocks run at once (95-day state, 365-day federal) and meeting one does not satisfy the other. TMHP states a 95-day or 120-day deadline falling on a weekend or listed holiday “is extended to the next business day” — this page does NOT apply that extension, because we do not hold TMHP's holiday list; treat the computed date as the safe date. The manual is republished monthly, so re-pull the current edition. Does not cover Texas Medicaid managed care (STAR / STAR+PLUS).",
+    source_url: "https://www.tmhp.com/sites/default/files/file-library/resources/provider-manuals/tmppm/pdf-chapters/2026/2026-06-june/1_06_claims_filing.pdf",
+    source_name: "Texas Medicaid Provider Procedures Manual, Vol.1 §6.1.4",
+    as_of: "2026-06 (June 2026 edition; reissued monthly)",
+    second_clock: {
+      rule: "days",
+      days: 365,
+      label: "Federal Medicaid deadline (runs at the same time)",
+      text: "“the 365-day federal filing deadline must still be met.”"
+    }
+  },
+  {
+    id: "ny_medicaid",
+    group: "Medicaid",
+    label: "New York Medicaid (eMedNY) — fee-for-service",
+    kind: "government",
+    rule: "days",
+    days: 90,
+    limit_display: "90 days from the date of service",
+    date_label: "Date of service",
+    date_hint: "Date of service. Claims submitted after 90 days require a numeric HIPAA delay reason code and documentation of the reason.",
+    limit_text: "“Medicaid regulations require that claims for payment of medical care, services, or supplies to eligible beneficiaries be initially submitted within 90 days of the date of service to be valid and enforceable, unless the claim is delayed due to circumstances outside the control of the provider. All such claims submitted after 90 days must be submitted within 30 days from the time submission came within the control of the provider.”",
+    clock_starts: "Date of service.",
+    contract_note: "Regulatory (18 NYCRR 540.6), not contractual. New York is the one payer here where corrected claims get their own clock: a rejected or denied claim “must be corrected and resubmitted within 60 days of the date of notification to the provider.” Claims not correctly resubmitted within 60 days “are neither valid nor enforceable.” Provider-side delay is not an acceptable reason for going past 90 days. Does not cover NY Medicaid managed care.",
+    source_url: "https://www.emedny.org/providermanuals/allproviders/pdfs/information_for_all_providers-general_billing.pdf",
+    source_name: "eMedNY — Information for All Providers, General Billing",
+    as_of: "2025-06-09 (Version 2025-1)",
+    second_clock: {
+      rule: "calendar_years",
+      years: 2,
+      label: "Outer limit — claim must be payable by this date",
+      text: "“All claims must be finally submitted to the fiscal agent and be payable within two years from the date the care, services or supplies were furnished in order to be valid and enforceable.”"
+    }
+  },
+  {
+    id: "uhc_comm_nonpar",
+    group: "Commercial",
+    label: "UnitedHealthcare — commercial, NON-participating (out-of-network)",
+    kind: "commercial",
+    rule: "days",
+    days: 180,
+    limit_display: "180 days from the date of service",
+    date_label: "Date of service",
+    date_hint: "Date of service, measured to UnitedHealthcare's receipt of the claim.",
+    limit_text: "“For commercial plans, we allow up to 180 days for nonparticipating health care providers from the date of service to submit claims.”",
+    clock_starts: "Date of service; UHC measures to “the date by which UnitedHealthcare, or its delegate, receives the claim.”",
+    contract_note: "CONTRACT AND STATE LAW CAN OVERRIDE. UHC's own framing is “up to 180 days,” and it qualifies the whole section with “per the time frame listed in your Agreement or per applicable laws.” This row is for NON-participating providers only — UHC publishes no national number for participating providers, only a floor of “at least 90 days,” with the Agreement setting the real figure. Verify before relying on this date.",
+    source_url: "https://www.uhcprovider.com/content/dam/provider/docs/public/admin-guides/2026-UHC-Administrative-Guide.pdf",
+    source_name: "2026 UnitedHealthcare Care Provider Administrative Guide",
+    as_of: "2026 edition"
+  },
+  {
+    id: "uhc_ma_noncontracted",
+    group: "Commercial",
+    label: "UnitedHealthcare Medicare Advantage — NON-contracted providers",
+    kind: "commercial",
+    rule: "days",
+    days: 365,
+    limit_display: "365 days from the through date of service",
+    date_label: "“Through” date of service",
+    date_hint: "The “through” date of service — the last date on the claim, not the first.",
+    limit_text: "“For MA plans, we are required to allow 365 days from the through date of service for noncontracted health care providers to submit claims for processing.”",
+    clock_starts: "The “through” date of service.",
+    contract_note: "UHC describes this as a CMS requirement it is “required to allow,” so it is a regulatory floor rather than a negotiated term — but it covers NON-CONTRACTED providers only. A contracted MA provider is governed by its Agreement, which is usually shorter; do not apply 365 days to a contracted clinic. This figure is UnitedHealthcare's own statement and does not transfer to another carrier's Medicare Advantage product.",
+    source_url: "https://www.uhcprovider.com/content/dam/provider/docs/public/admin-guides/2026-UHC-Administrative-Guide.pdf",
+    source_name: "2026 UnitedHealthcare Care Provider Administrative Guide",
+    as_of: "2026 edition"
+  },
+  {
+    id: "uhc_cob",
+    group: "Commercial",
+    label: "UnitedHealthcare — secondary / coordination of benefits",
+    kind: "commercial",
+    rule: "days",
+    days: 90,
+    limit_display: "At least 90 days from the primary payer's payment, contest, denial or notice",
+    date_label: "Primary payer's payment / contest / denial / notice date",
+    date_hint: "NOT the date of service. Enter the date of the primary payer's payment, contest, denial, or notice — this is the trigger UnitedHealthcare uses.",
+    limit_text: "“If we, or our capitated provider, are not the primary payer, we give you at least 90 days from the day of payment, contest, denial or notice from the primary payer to submit the claim.”",
+    clock_starts: "The primary payer's date of payment, contest, denial, or notice — not the date of service.",
+    contract_note: "“At least 90 days” is a FLOOR, not the deadline; the Agreement may allow more and it controls — confirm against the clinic's contract. Note that other payers repoint the COB clock to a different event: Cigna uses the processing date on the primary's EOB/EOP, BCBSIL uses your receipt of the primary's EOB. Those are not the same day. This is a common denial cause because staff measure from date of service instead.",
+    source_url: "https://www.uhcprovider.com/content/dam/provider/docs/public/admin-guides/2026-UHC-Administrative-Guide.pdf",
+    source_name: "2026 UnitedHealthcare Care Provider Administrative Guide",
+    as_of: "2026 edition"
+  },
+  {
+    id: "cigna_par",
+    group: "Commercial",
+    label: "Cigna Healthcare — commercial, participating",
+    kind: "commercial",
+    rule: "days",
+    days: 90,
+    limit_display: "90 days from the date of service",
+    date_label: "Date of service",
+    date_hint: "Date of service. “If services are rendered on consecutive days, such as for a hospital confinement, the limit will be counted from the last date of service.”",
+    limit_text: "“A participating health care provider” must “submit by… 90 days after the date of service.” Cigna's resource-library policy states the limit as “three (3) months [90 days] after the date of service.”",
+    clock_starts: "Date of service; last date of service where services are rendered on consecutive days.",
+    contract_note: "CONTRACT AND STATE LAW CAN OVERRIDE — Cigna publishes both exceptions: the deadline is extended where “applicable law requires a longer filing period” or the “provider agreement specifically allows for additional time.” STALENESS RISK: the underlying Cigna policy page carries a page date of 2015-04-01. Confirm with Cigna provider services or your contract before treating 90 days as authoritative. Cigna also states your contract “prohibits balance billing your patient if claims are denied because they were not submitted within the time frame outlined above.”",
+    source_url: "https://www.cigna.com/health-care-providers/coverage-and-claims/submit-claims",
+    source_name: "Cigna Healthcare — Submit claims",
+    as_of: "Fetched 2026-07-29; underlying policy page dated 2015-04-01"
+  },
+  {
+    id: "cigna_oon",
+    group: "Commercial",
+    label: "Cigna Healthcare — commercial, out-of-network",
+    kind: "commercial",
+    rule: "days",
+    days: 180,
+    limit_display: "180 days from the date of service",
+    date_label: "Date of service",
+    date_hint: "Date of service; last date of service where services are rendered on consecutive days.",
+    limit_text: "“An out-of-network provider” must “submit by… 180 days after the date of service” (stated in the resource-library policy as “six (6) months [180 days] after the date of service”).",
+    clock_starts: "Date of service; last date of service where services are rendered on consecutive days.",
+    contract_note: "Same overrides apply: longer if applicable law requires it or a provider agreement allows it. STALENESS RISK: the source policy page is dated 2015-04-01 — confirm against current Cigna provider materials. In coordination-of-benefits situations Cigna repoints the clock to “the processing date indicated on the primary carrier's Explanation of Benefits (EOB) or Explanation of Payment (EOP)” rather than the date of service.",
+    source_url: "https://www.cigna.com/health-care-providers/coverage-and-claims/submit-claims",
+    source_name: "Cigna Healthcare — Submit claims",
+    as_of: "Fetched 2026-07-29; underlying policy page dated 2015-04-01"
+  },
+  {
+    id: "aetna_ny",
+    group: "Commercial",
+    label: "Aetna — NEW YORK commercial only",
+    kind: "commercial",
+    rule: "days",
+    days: 120,
+    limit_display: "120 days from the date of service",
+    date_label: "Date of service",
+    date_hint: "Date of service. This rule applies to New York only — it exists because New York law imposes it.",
+    limit_text: "“Providers must initially submit claims within 120 days after the date of the service to be valid and enforceable against Aetna, unless a time frame more favorable to the provider was agreed to by the provider and Aetna or unless a different time frame is required by law.”",
+    clock_starts: "Date of service.",
+    contract_note: "NEW YORK ONLY — do not generalise this to Illinois or any other state. Aetna publishes NO national timely-filing day count, so there is nothing to fall back on elsewhere; use your contract. Aetna itself flags that a MORE FAVORABLE contracted time frame overrides this. Late-claim reconsideration is limited: where the provider shows the late claim resulted from an unusual occurrence and has a pattern of timely submissions, Aetna must pay — but “Aetna may reduce the reimbursement of a claim by up to 25% of the amount that would have been paid had the claim been submitted in a timely manner.” Hard stop: “The right to reconsideration shall not apply to a claim submitted 365 days after the service, and in such cases, Aetna may deny the claim in full.”",
+    source_url: "https://www.aetna.com/content/dam/aetna/pdfs/aetnacom/healthcare-professionals/documents-forms/ProviderManual-StateSpplmt.pdf",
+    source_name: "Aetna Provider Manual State Supplement, New York section",
+    as_of: "2025-12 (doc 5883751-01-01 (12/25))"
+  },
+  {
+    id: "bcbsil_comm",
+    group: "Commercial",
+    label: "BCBSIL — commercial non-HMO PPO / Blue Choice PPO / Blue HPN, participating",
+    kind: "commercial",
+    rule: "days",
+    days: 180,
+    limit_display: "180 days from the date of service",
+    date_label: "Date of service (inpatient: discharge or transfer date)",
+    date_hint: "Date of service for non-inpatient services; date of discharge or transfer for inpatient. If BCBSIL is SECONDARY, enter instead the date you received the primary payer's explanation of benefits.",
+    limit_text: "Claims must be submitted “within the 180-day period following: the date of discharge or transfer” for inpatient health services, “the date of service for all other health services” that are not inpatient, or “the date of the participating provider's receipt of the explanation of benefits from the primary payer” when BCBSIL is the secondary payer.",
+    clock_starts: "Date of service; inpatient: discharge or transfer; secondary: your receipt of the primary payer's EOB.",
+    contract_note: "BCBSIL PUBLISHES ITS OWN EXCEPTION: “Some employer groups have different time frames for filing claims. If you have questions, call the number on the member's ID card.” So 180 days is not reliable per-claim for self-funded employer groups even inside BCBSIL. Blue Cross Blue Shield is not one payer — this is ILLINOIS only and does not transfer to any other Blue plan or state. Verify against the clinic's BCBSIL provider agreement and the specific member's plan before relying on this date; the agreement and the member's employer group can both override the published 180 days. Corrected claims get no extra time: “Corrected claims must still be filed within the timely filing deadlines”, and “a correction to a prior claim may not be submitted until the original claim has been processed and provider has been notified of the claim status.”",
+    source_url: "https://www.bcbsil.com/provider/education/education-reference/news/2024/10-28-2024-follow-timely-filing-requirements",
+    source_name: "BCBSIL — Follow Timely Filing Requirements to Enable Claim Processing",
+    as_of: "2024-10-28"
+  },
+  {
+    id: "bcbsil_gov",
+    group: "Commercial",
+    label: "BCBSIL — government programs (Community Health Plans, MMAI, Medicare Advantage), participating",
+    kind: "commercial",
+    rule: "days",
+    days: 180,
+    limit_display: "180 days from the service or discharge date",
+    date_label: "Date of service (or discharge date)",
+    date_hint: "Date of service, or the discharge date for an inpatient stay.",
+    limit_text: "“In general, participating providers are required to submit claims within 180 days of the service or discharge date” for covered services provided to Blue Cross Community Health Plans, Blue Cross Community MMAI (Medicare-Medicaid Plan) and Blue Cross Medicare Advantage members.",
+    clock_starts: "Date of service, or discharge date.",
+    contract_note: "BCBSIL hedges it — the sentence opens with “In general” — so treat it as indicative and verify per product. The governing documents are the applicable BCBSIL provider manual for that product plus the provider agreement, which control; for the Medicaid and MMAI products, state and CMS requirements also apply.",
+    source_url: "https://www.bcbsil.com/provider/education/education-reference/news/2024/10-28-2024-follow-timely-filing-requirements",
+    source_name: "BCBSIL — Follow Timely Filing Requirements to Enable Claim Processing",
+    as_of: "2024-10-28"
+  }
+];
+
+var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+var WEEKDAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+var DAY_MS = 86400000;
+
+function isLeapYear(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+
+function daysInMonth(y, m) {
+  return [31, isLeapYear(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+}
+
+/* Parse a date-only "YYYY-MM-DD" string into {y,m,d}. Returns null if it is not a real
+   calendar date. Deliberately does NOT use new Date(string), which parses as UTC and
+   then shifts by a day when read with local getters. */
+function parseYmd(s) {
+  if (typeof s !== "string") return null;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  var y = +m[1], mo = +m[2], d = +m[3];
+  if (mo < 1 || mo > 12) return null;
+  if (d < 1 || d > daysInMonth(y, mo)) return null;
+  return { y: y, m: mo, d: d };
+}
+
+function fmtYmd(o) {
+  return o.y + "-" + String(o.m).padStart(2, "0") + "-" + String(o.d).padStart(2, "0");
+}
+
+/* All arithmetic goes through Date.UTC and is read back with UTC getters, so the result
+   is identical in every timezone and unaffected by DST. */
+function toUTC(o) { return Date.UTC(o.y, o.m - 1, o.d); }
+
+function fromUTC(t) {
+  var dt = new Date(t);
+  return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() };
+}
+
+function addDays(o, n) { return fromUTC(toUTC(o) + n * DAY_MS); }
+
+/* A calendar-year rule is not "365 days": 2023-03-01 + 1 year is 2024-03-01, which is 366
+   days later. The only date that cannot survive adding whole years is February 29, and CMS
+   states the answer for it directly: a February 29 date of service must be filed by
+   February 28 of the following year. */
+function addCalendarYears(o, n) {
+  var y = o.y + n, m = o.m, d = o.d;
+  if (m === 2 && d === 29 && !isLeapYear(y)) d = 28;
+  return { y: y, m: m, d: d };
+}
+
+function daysBetween(a, b) { return Math.round((toUTC(b) - toUTC(a)) / DAY_MS); }
+
+function weekdayOf(o) { return WEEKDAYS[new Date(toUTC(o)).getUTCDay()]; }
+
+function longDate(o) { return weekdayOf(o) + ", " + MONTHS[o.m - 1] + " " + o.d + ", " + o.y; }
+
+function applyRule(startYmd, rule) {
+  if (rule.rule === "calendar_years") return addCalendarYears(startYmd, rule.years);
+  return addDays(startYmd, rule.days);
+}
+
+function statusFor(daysRemaining) {
+  if (daysRemaining < 0) return { key: "past", label: "Past the filing deadline" };
+  if (daysRemaining === 0) return { key: "today", label: "Deadline is today" };
+  if (daysRemaining <= 14) return { key: "urgent", label: "Act now" };
+  if (daysRemaining <= 30) return { key: "soon", label: "Closing soon" };
+  return { key: "ok", label: "On track" };
+}
+
+function findPayer(id) {
+  for (var i = 0; i < PAYERS.length; i++) if (PAYERS[i].id === id) return PAYERS[i];
+  return null;
+}
+
+/* evaluate(payerId, startDateString, contractDaysRaw, todayString)
+   Returns {ok:false, error} or the full result. `today` is passed in so the caller owns
+   the definition of "today" and the function stays pure and testable. */
+function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
+  var entry = payerId ? findPayer(payerId) : null;
+  var start = parseYmd(startStr);
+  var today = parseYmd(todayStr);
+  if (!today) return { ok: false, error: "internal: invalid today" };
+
+  var contractDays = null;
+  if (contractDaysRaw !== null && contractDaysRaw !== undefined && String(contractDaysRaw).trim() !== "") {
+    var n = Number(contractDaysRaw);
+    if (!isFinite(n) || Math.floor(n) !== n || n < 1 || n > 1095) {
+      return { ok: false, error: "Enter a whole number of contract days between 1 and 1095." };
+    }
+    contractDays = n;
+  }
+
+  if (!start) return { ok: false, error: "need_date" };
+  if (!entry && contractDays === null) return { ok: false, error: "need_payer_or_contract" };
+
+  var basis, rule, ruleWord;
+  if (contractDays !== null) {
+    basis = "contract";
+    rule = { rule: "days", days: contractDays };
+    ruleWord = contractDays + " calendar days";
+  } else {
+    basis = "published";
+    rule = entry.rule === "calendar_years"
+      ? { rule: "calendar_years", years: entry.years }
+      : { rule: "days", days: entry.days };
+    ruleWord = entry.rule === "calendar_years"
+      ? (entry.years === 1 ? "1 calendar year" : entry.years + " calendar years")
+      : entry.days + " calendar days";
+  }
+
+  var deadline = applyRule(start, rule);
+  var remaining = daysBetween(today, deadline);
+  var elapsed = daysBetween(start, today);
+
+  var second = null;
+  if (basis === "published" && entry && entry.second_clock) {
+    var sd = applyRule(start, entry.second_clock);
+    second = {
+      label: entry.second_clock.label,
+      text: entry.second_clock.text,
+      deadline: fmtYmd(sd),
+      deadline_long: longDate(sd),
+      days_remaining: daysBetween(today, sd)
+    };
+  }
+
+  return {
+    ok: true,
+    basis: basis,
+    payer_id: entry ? entry.id : null,
+    payer_label: entry ? entry.label : null,
+    rule_word: ruleWord,
+    counting: rule.rule,
+    start: fmtYmd(start),
+    start_long: longDate(start),
+    start_in_future: elapsed < 0,
+    deadline: fmtYmd(deadline),
+    deadline_long: longDate(deadline),
+    deadline_is_weekend: [0, 6].indexOf(new Date(toUTC(deadline)).getUTCDay()) !== -1,
+    days_remaining: remaining,
+    days_elapsed: elapsed,
+    status: statusFor(remaining),
+    second_clock: second
+  };
+}
+/* ==END CORE== */
+
+(function () {
+  if (typeof document === "undefined") return;
+
+  var els = {};
+  ["payer","dos","dos-label","clock-hint","contract","result","r-head","r-date",
+   "r-remaining","r-contractwarn","r-basis","r-second","r-weekend","r-clock","r-source",
+   "r-limittext","r-contractnote"].forEach(function (id) { els[id] = document.getElementById(id); });
+
+  // Build the payer picker from the same array the table is checked against.
+  var groups = {};
+  var order = [];
+  PAYERS.forEach(function (p) {
+    if (!groups[p.group]) { groups[p.group] = []; order.push(p.group); }
+    groups[p.group].push(p);
+  });
+  order.forEach(function (g) {
+    var og = document.createElement("optgroup");
+    og.label = g;
+    groups[g].forEach(function (p) {
+      var o = document.createElement("option");
+      o.value = p.id;
+      o.textContent = p.label + " — " + p.limit_display;
+      og.appendChild(o);
+    });
+    els.payer.appendChild(og);
+  });
+
+  function todayString() {
+    var n = new Date();
+    return n.getFullYear() + "-" + String(n.getMonth() + 1).padStart(2, "0") + "-" + String(n.getDate()).padStart(2, "0");
+  }
+
+  function setText(id, txt) {
+    els[id].textContent = txt || "";
+    els[id].hidden = !txt;
+  }
+
+  function update() {
+    var entry = findPayer(els.payer.value);
+
+    els["dos-label"].textContent = entry ? entry.date_label : "Date of service";
+    els["clock-hint"].textContent = entry
+      ? entry.date_hint
+      : "The clock start differs by payer and by situation — select a payer and this will tell you exactly which date to enter.";
+
+    var res = evaluate(els.payer.value, els.dos.value, els.contract.value, todayString());
+
+    if (!res.ok) {
+      if (res.error === "need_date" || res.error === "need_payer_or_contract") {
+        els.result.hidden = true;
+        return;
+      }
+      els.result.hidden = false;
+      els["r-head"].textContent = res.error;
+      ["r-date","r-remaining","r-contractwarn","r-basis","r-second","r-weekend","r-clock",
+       "r-source","r-limittext","r-contractnote"].forEach(function (id) { setText(id, ""); });
+      return;
+    }
+
+    els.result.hidden = false;
+
+    var head = document.createElement("span");
+    head.className = "status status-" + res.status.key;
+    head.textContent = res.status.label;
+    els["r-head"].textContent = "";
+    els["r-head"].appendChild(head);
+    els["r-head"].appendChild(document.createTextNode(
+      res.basis === "contract"
+        ? " — using your contract's " + res.rule_word
+        : " — " + res.payer_label
+    ));
+
+    els["r-date"].textContent = res.deadline_long;
+
+    var rem;
+    if (res.days_remaining < 0) {
+      rem = Math.abs(res.days_remaining) + " day" + (Math.abs(res.days_remaining) === 1 ? "" : "s") +
+            " past the deadline. Do not assume it is appealable — on Medicare, an untimely-filing denial is not an initial determination and carries no appeal right.";
+    } else if (res.days_remaining === 0) {
+      rem = "0 days remaining — the deadline is today, and it runs to the payer's receipt of the claim, not to your send time.";
+    } else {
+      rem = res.days_remaining + " day" + (res.days_remaining === 1 ? "" : "s") + " remaining.";
+    }
+    if (res.start_in_future) rem += " (The date you entered is in the future.)";
+    els["r-remaining"].textContent = rem;
+
+    // The contract caveat is the single most important thing on a commercial result,
+    // so it renders as a warning band here rather than as fineprint further down.
+    if (res.basis === "contract") {
+      setText("r-contractwarn", "This date comes from the number you typed, not from a published source. " +
+        "We have not verified it and cannot — check it against the executed agreement.");
+    } else if (entry && entry.kind === "commercial") {
+      setText("r-contractwarn", "Contract controls — this is a published default, not your deadline. " +
+        "Your participation agreement can be shorter, a self-funded employer group can differ from " +
+        "one member to the next, and state law can override both. Enter your contracted number above " +
+        "to use it instead.");
+    } else {
+      setText("r-contractwarn", "");
+    }
+
+    var basisTxt;
+    if (res.basis === "contract") {
+      basisTxt = "Computed as " + res.start_long + " + " + res.rule_word +
+        ". This is YOUR contract number, not a published one — we have not verified it and cannot.";
+      if (entry) basisTxt += " It overrides the published figure for " + entry.label + ".";
+    } else {
+      basisTxt = "Computed as " + res.start_long + " + " + res.rule_word + ".";
+      basisTxt += res.counting === "calendar_years"
+        ? " Calendar arithmetic, because the rule is written in years — not a 365-day count."
+        : " Day arithmetic, because the payer publishes a day count. If this payer counts the date of service itself as day 1, the real deadline is one day earlier — do not file on the last day.";
+    }
+    setText("r-basis", basisTxt);
+
+    if (res.second_clock) {
+      setText("r-second", "Second clock, running at the same time — " + res.second_clock.label + ": " +
+        res.second_clock.deadline_long + " (" + res.second_clock.days_remaining + " days). " + res.second_clock.text);
+    } else {
+      setText("r-second", "");
+    }
+
+    var wkTxt = "";
+    if (res.deadline_is_weekend) {
+      wkTxt = "This date falls on a weekend. This page applies no weekend or holiday extension — it does not hold the Federal holiday calendar — so treat the date shown as the safe one. ";
+      wkTxt += res.payer_id === "medicare_ffs"
+        ? "Medicare does publish one: 42 CFR 424.44(c) provides that where the last day of the filing period falls on a “Federal nonworkday (a Saturday, Sunday, legal holiday, or a day which by statute or Executive Order is declared to be a nonworkday for Federal employees), the time is extended to the next succeeding workday.”"
+        : "Some payers publish one — Texas Medicaid extends a deadline landing on a weekend or listed holiday to the next business day, and Medicare has its own rule at 42 CFR 424.44(c). Check whether yours does; do not assume it.";
+    }
+    setText("r-weekend", wkTxt);
+
+    if (res.basis === "published" && entry) {
+      setText("r-clock", "Clock starts: " + entry.clock_starts);
+      els["r-source"].hidden = false;
+      els["r-source"].textContent = "";
+      els["r-source"].appendChild(document.createTextNode("Source: "));
+      var a = document.createElement("a");
+      a.href = entry.source_url;
+      a.rel = "noopener";
+      a.textContent = entry.source_name;
+      els["r-source"].appendChild(a);
+      els["r-source"].appendChild(document.createTextNode(" — as of " + entry.as_of + "."));
+      setText("r-limittext", "Published wording: " + entry.limit_text);
+      setText("r-contractnote", (entry.kind === "commercial" ? "Contract controls. " : "") + entry.contract_note);
+    } else {
+      setText("r-clock", "");
+      els["r-source"].hidden = true;
+      setText("r-limittext", "");
+      setText("r-contractnote", entry
+        ? "You entered a contract number, so the published figure for " + entry.label + " is not being used. Confirm the number against the executed agreement — and remember a self-funded employer group can differ from the agreement's default."
+        : "No payer selected. This date comes only from the number you typed. For any commercial payer, the executed participation agreement is the authority.");
+    }
+  }
+
+  ["payer","dos","contract"].forEach(function (id) {
+    els[id].addEventListener("input", update);
+    els[id].addEventListener("change", update);
+  });
+  update();
+})();
+</script>
+</body>
+</html>
