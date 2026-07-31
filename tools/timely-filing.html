@@ -67,6 +67,11 @@
     <p><strong>So the field below marked <em>my contract says ___ days</em> is the one to
     use for any commercial payer whose agreement you have in hand.</strong> It overrides
     the published default.</p>
+    <p>The reverse is true for Medicare and Medicaid: those limits are regulatory or
+    statutory — 42 CFR 424.44(a) for Medicare, 42 CFR 447.45(d)(1) for the federal Medicaid
+    ceiling, state law for the state programs — and no participation agreement lengthens
+    them. If you type a longer number against one of those payers, the calculator keeps the
+    published limit.</p>
   </div>
 
   <form class="calc" id="calc" onsubmit="return false">
@@ -88,15 +93,19 @@
     </div>
 
     <fieldset>
-      <legend>My contract says ___ days</legend>
+      <legend>My contract says ___ days (commercial payers)</legend>
       <div class="field">
-        <label for="contract">Days allowed by your participation agreement (optional, but it wins)</label>
+        <label for="contract">Days allowed by your participation agreement (optional)</label>
         <input type="number" id="contract" min="1" max="1095" inputmode="numeric" placeholder="e.g. 90">
-        <p class="hint">Enter the number from your executed agreement and the calculator
-        will use it instead of the published default, counting calendar days from the
-        date above. Leave blank to use the published number. If you do not know your
-        contracted limit, that is worth finding out before it costs you a claim — it is
-        one of the first things we check in the free scorecard.</p>
+        <p class="hint">For a <strong>commercial</strong> payer, enter the number from your
+        executed agreement and the calculator will use it instead of the published default,
+        counting calendar days from the date above. Leave blank to use the published number.
+        If you do not know your contracted limit, that is worth finding out before it costs
+        you a claim — it is one of the first things we check in the free scorecard.</p>
+        <p class="hint">For <strong>Medicare and Medicaid</strong> the limit is set by
+        regulation or statute, not by your participation agreement, so a number typed here
+        can only make the deadline <em>earlier</em>, never later. If you type a longer one
+        the calculator keeps the published limit and says so.</p>
       </div>
     </fieldset>
   </form>
@@ -695,19 +704,53 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
   if (!start) return { ok: false, error: "need_date" };
   if (!entry && contractDays === null) return { ok: false, error: "need_payer_or_contract" };
 
+  var publishedRule = null, publishedWord = null;
+  if (entry) {
+    publishedRule = entry.rule === "calendar_years"
+      ? { rule: "calendar_years", years: entry.years }
+      : { rule: "days", days: entry.days };
+    publishedWord = entry.rule === "calendar_years"
+      ? (entry.years === 1 ? "1 calendar year" : entry.years + " calendar years")
+      : entry.days + " calendar days";
+  }
+
+  /* A participation agreement does not set a statutory or regulatory filing limit, so the
+     "my contract says ___ days" field must never be able to LENGTHEN one. Medicare is fixed
+     by 42 CFR 424.44(a) — "the claim must be filed no later than the close of the period
+     ending 1 calendar year after the date of service" — and that section contains no
+     provision letting an agreement extend it; the federal Medicaid ceiling is fixed by
+     42 CFR 447.45(d)(1); the state Medicaid entries here are statutory or regulatory too
+     (Illinois PA 097-0689, 18 NYCRR 540.6, the Texas program rule). Getting this wrong is
+     unrecoverable: per CMS Pub 100-04 Ch.1 §70.4 an untimely-filing denial "does not
+     constitute an initial determination" and is not appealable.
+
+     So for any non-commercial entry we take the EARLIER of the published limit and the
+     typed number. A clinic whose internal rule is shorter is safe to honour; a longer one
+     is ignored and said so out loud. */
   var basis, rule, ruleWord;
-  if (contractDays !== null) {
+  var statutory = false;      // a contract number was typed against a non-commercial entry
+  var contractCapped = false; // ...and it was longer than the published limit, so ignored
+  if (contractDays !== null && entry && entry.kind !== "commercial") {
+    statutory = true;
+    var contractRule = { rule: "days", days: contractDays };
+    if (toUTC(applyRule(start, contractRule)) < toUTC(applyRule(start, publishedRule))) {
+      basis = "contract";
+      rule = contractRule;
+      ruleWord = contractDays + " calendar days";
+    } else {
+      contractCapped = true;
+      basis = "published";
+      rule = publishedRule;
+      ruleWord = publishedWord;
+    }
+  } else if (contractDays !== null) {
     basis = "contract";
     rule = { rule: "days", days: contractDays };
     ruleWord = contractDays + " calendar days";
   } else {
     basis = "published";
-    rule = entry.rule === "calendar_years"
-      ? { rule: "calendar_years", years: entry.years }
-      : { rule: "days", days: entry.days };
-    ruleWord = entry.rule === "calendar_years"
-      ? (entry.years === 1 ? "1 calendar year" : entry.years + " calendar years")
-      : entry.days + " calendar days";
+    rule = publishedRule;
+    ruleWord = publishedWord;
   }
 
   var deadline = applyRule(start, rule);
@@ -715,7 +758,7 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
   var elapsed = daysBetween(start, today);
 
   var second = null;
-  if (basis === "published" && entry && entry.second_clock) {
+  if ((basis === "published" || statutory) && entry && entry.second_clock) {
     var sd = applyRule(start, entry.second_clock);
     second = {
       label: entry.second_clock.label,
@@ -729,7 +772,11 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
   return {
     ok: true,
     basis: basis,
+    statutory: statutory,
+    contract_capped: contractCapped,
+    published_word: publishedWord,
     payer_id: entry ? entry.id : null,
+    payer_kind: entry ? entry.kind : null,
     payer_label: entry ? entry.label : null,
     rule_word: ruleWord,
     counting: rule.rule,
@@ -813,11 +860,17 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     head.textContent = res.status.label;
     els["r-head"].textContent = "";
     els["r-head"].appendChild(head);
-    els["r-head"].appendChild(document.createTextNode(
-      res.basis === "contract"
-        ? " — using your contract's " + res.rule_word
-        : " — " + res.payer_label
-    ));
+    var headTail;
+    if (res.statutory) {
+      headTail = " — " + res.payer_label + (res.contract_capped
+        ? " (published limit; your typed number is longer and cannot apply)"
+        : " (using your shorter internal deadline of " + res.rule_word + ")");
+    } else if (res.basis === "contract") {
+      headTail = " — using your contract's " + res.rule_word;
+    } else {
+      headTail = " — " + res.payer_label;
+    }
+    els["r-head"].appendChild(document.createTextNode(headTail));
 
     els["r-date"].textContent = res.deadline_long;
 
@@ -835,7 +888,17 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
 
     // The contract caveat is the single most important thing on a commercial result,
     // so it renders as a warning band here rather than as fineprint further down.
-    if (res.basis === "contract") {
+    if (res.statutory) {
+      setText("r-contractwarn", res.contract_capped
+        ? "The " + res.rule_word + " limit for " + res.payer_label + " is set by regulation or statute, " +
+          "not by a participation agreement, so the number you typed cannot lengthen it. The date shown " +
+          "is the published limit. Filing after it is denied as untimely — on Medicare that denial is not " +
+          "an initial determination and carries no appeal right."
+        : "The number you typed is SHORTER than the published " + res.published_word + " limit for " +
+          res.payer_label + ", which is set by regulation or statute rather than by a participation " +
+          "agreement. The earlier of the two is shown. A shorter internal deadline is yours to keep; " +
+          "the published limit is the one that denies the claim.");
+    } else if (res.basis === "contract") {
       setText("r-contractwarn", "This date comes from the number you typed, not from a published source. " +
         "We have not verified it and cannot — check it against the executed agreement.");
     } else if (entry && entry.kind === "commercial") {
@@ -848,7 +911,11 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     }
 
     var basisTxt;
-    if (res.basis === "contract") {
+    if (res.statutory && res.basis === "contract") {
+      basisTxt = "Computed as " + res.start_long + " + " + res.rule_word +
+        ". That is YOUR number, not a published one — we have not verified it and cannot. It does not " +
+        "override the published limit for " + entry.label + "; it is simply earlier, so it is the one shown.";
+    } else if (res.basis === "contract") {
       basisTxt = "Computed as " + res.start_long + " + " + res.rule_word +
         ". This is YOUR contract number, not a published one — we have not verified it and cannot.";
       if (entry) basisTxt += " It overrides the published figure for " + entry.label + ".";
@@ -876,7 +943,10 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     }
     setText("r-weekend", wkTxt);
 
-    if (res.basis === "published" && entry) {
+    // Statutory results keep the source, the published wording and the contract note even
+    // when the clinic's shorter internal number produced the displayed date — the published
+    // limit is still the one that denies the claim, so it must stay on screen.
+    if ((res.basis === "published" || res.statutory) && entry) {
       setText("r-clock", "Clock starts: " + entry.clock_starts);
       els["r-source"].hidden = false;
       els["r-source"].textContent = "";
