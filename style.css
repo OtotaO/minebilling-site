@@ -30,6 +30,16 @@ header.site {
 .brand .tld { color: var(--teal); }
 nav.site a { color: var(--ink-2); text-decoration: none; margin-left: 1.4rem; font-size: .92rem; }
 nav.site a:hover, nav.site a:focus-visible { color: var(--teal); }
+/* Cross-links between the five free tools. Wraps rather than scrolls on a phone. */
+nav.toolbar {
+  max-width: 960px; margin: 0 auto; padding: .7rem clamp(1rem, 4vw, 2rem) .2rem;
+  border-top: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: .35rem .9rem; align-items: baseline; font-size: .85rem;
+}
+nav.toolbar span { color: var(--ink-2); font-weight: 600; }
+nav.toolbar a { color: var(--ink-2); text-decoration: none; }
+nav.toolbar a:hover, nav.toolbar a:focus-visible { color: var(--teal); text-decoration: underline; }
+nav.toolbar a[aria-current="page"] { color: var(--ink); font-weight: 600; }
 main { max-width: 960px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem) 4rem; }
 h1 {
   font-family: Charter, Georgia, "Times New Roman", serif;
