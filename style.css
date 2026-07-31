@@ -5,6 +5,11 @@
   --ink: #1B2A3A;
   --ink-2: #4E6072;
   --line: #E2E4E0;
+  /* Boundary colour for interactive controls only. WCAG 2.1 SC 1.4.11 needs 3:1 against
+     both adjacent colours; --line is 1.24:1 on --paper and 1.28:1 on --panel, which is
+     effectively invisible. #848E8B measures 3.26:1 on --paper and 3.38:1 on --panel.
+     Decorative card/table borders stay on --line. */
+  --line-strong: #848E8B;
   --teal: #0E6E6D;
   --teal-deep: #0A5251;
   --gold: #8A6D1F;
@@ -45,6 +50,16 @@ a { color: var(--teal); }
 }
 .cta-box h2 { margin-top: 0; }
 .cta-box p { color: var(--ink); }
+/* Emphatic caveat panel. Shared so that every "do not do this" note on the site — the
+   commercial-contract warning on the filing calculator and the no-patient-information
+   warning on the request page — gets the same weight instead of being fineprint. */
+.warn {
+  background: #FDF7E8; border: 1px solid var(--gold); border-left-width: 4px;
+  border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.6rem 0;
+}
+.warn h2, .warn h3 { margin-top: 0; }
+.warn p { color: var(--ink); }
+.warn p:last-child { margin-bottom: 0; }
 .btn {
   display: inline-block; background: var(--teal); color: #fff; text-decoration: none;
   padding: .7rem 1.35rem; border-radius: 8px; font-weight: 600; margin-top: .6rem;
@@ -60,15 +75,25 @@ form.calc { background: var(--panel); border: 1px solid var(--line); border-radi
 .field { display: flex; flex-direction: column; gap: .35rem; }
 .field label { font-weight: 600; font-size: .95rem; }
 .field .hint { font-size: .8rem; color: var(--ink-2); max-width: 60ch; }
-select, input[type="number"] {
-  font: inherit; padding: .55rem .7rem; border: 1px solid var(--line); border-radius: 8px;
+select, input[type="number"], input[type="text"], input[type="date"], input[type="search"], textarea {
+  font: inherit; padding: .55rem .7rem; border: 1px solid var(--line-strong); border-radius: 8px;
   background: var(--paper); color: var(--ink); max-width: 100%;
+  /* Long <option> strings otherwise give the select a huge min-content width, which
+     propagates out to the fieldset and pans the whole page sideways on a phone. */
+  min-width: 0;
 }
-select:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
-fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; margin: 0; display: flex; flex-direction: column; gap: 1rem; }
+select { width: 100%; }
+select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+/* The UA stylesheet gives <fieldset> `min-inline-size: min-content`, so a fieldset
+   containing a wide select refuses to shrink below that select's intrinsic width and
+   overflows its parent form. Zeroing it lets the fieldset track the form's width. */
+fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; margin: 0; display: flex; flex-direction: column; gap: 1rem; min-inline-size: 0; min-width: 0; }
 legend { font-weight: 700; padding: 0 .4rem; }
 .result { border-left: 4px solid var(--teal); background: var(--good-bg); border-radius: 8px; padding: 1.1rem 1.3rem; }
-.result h3 { font-size: 1.15rem; }
+.result h3, .result h2 { font-size: 1.15rem; }
+/* The result pane's heading is an <h2> so the document does not skip from h1 to h3;
+   it must not pick up the section-heading margins/serif face. */
+.result h2 { font-family: inherit; margin: 0 0 .4rem; letter-spacing: 0; }
 .result .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; color: var(--teal-deep); }
 .result p { margin: .35rem 0 0; font-size: .92rem; }
 .muted { color: var(--ink-2); }

@@ -10,15 +10,22 @@
 <style>
   .lookup { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
              padding: 1.4rem 1.6rem; display: flex; flex-direction: column; gap: 1rem; max-width: 720px; }
-  .lookup input[type="search"] { font: inherit; padding: .6rem .75rem; border: 1px solid var(--line);
-             border-radius: 8px; background: var(--paper); color: var(--ink); width: 100%; }
+  .lookup input[type="search"] { font: inherit; padding: .6rem .75rem; border: 1px solid var(--line-strong);
+             border-radius: 8px; background: var(--paper); color: var(--ink); width: 100%; min-width: 0; }
   .lookup input[type="search"]:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
   .lookup .row { display: flex; flex-wrap: wrap; gap: .8rem; align-items: flex-end; }
   .lookup .row .field { flex: 1 1 12rem; }
   .status { font-size: .85rem; color: var(--ink-2); }
   .grouphint { border-left: 4px solid var(--gold); background: #FBF7EC; border-radius: 8px;
              padding: .8rem 1rem; font-size: .9rem; margin: 0; max-width: 70ch; }
-  ul.hits { list-style: none; padding: 0; margin: 1.4rem 0 0; display: grid; gap: .9rem; }
+  /* The implicit grid track would otherwise be sized to the widest card's min-content
+     contribution — the unbreakable X12 token
+     "Precertification/authorization/notification/pre-treatment" in CARC 197/198 — which
+     pans the whole page sideways on a phone. minmax(0, 1fr) caps the track at the
+     container width; the wrap rules below let that long token break instead. The X12
+     text itself is never altered. */
+  ul.hits { list-style: none; padding: 0; margin: 1.4rem 0 0; display: grid;
+             grid-template-columns: minmax(0, 1fr); gap: .9rem; }
   ul.hits > li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
              padding: 1rem 1.2rem; }
   .hit-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .8rem; margin-bottom: .5rem; }
@@ -26,8 +33,10 @@
              font-size: 1.05rem; color: var(--teal-deep); }
   .tag { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2);
              border: 1px solid var(--line); border-radius: 999px; padding: .1rem .55rem; }
-  .hits p, .qa p { margin: .3rem 0 0; font-size: .93rem; max-width: 72ch; }
-  .official { color: var(--ink); border-left: 3px solid var(--line); padding-left: .8rem; }
+  .hits p, .qa p { margin: .3rem 0 0; font-size: .93rem; max-width: 72ch; overflow-wrap: anywhere; }
+  .official { color: var(--ink); border-left: 3px solid var(--line); padding-left: .8rem;
+             overflow-wrap: anywhere; }
+  .hit-head .code, .qa .code { overflow-wrap: anywhere; }
   .label { font-weight: 600; }
   .qa { border-top: 1px solid var(--line); padding: .9rem 0 .2rem; }
   .qa h3 { font-size: .98rem; margin-bottom: .3rem; }

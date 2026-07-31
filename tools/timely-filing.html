@@ -12,17 +12,8 @@
 <link rel="stylesheet" href="../style.css">
 <style>
   /* page-local additions; palette variables come from style.css */
-  input[type="date"], input[type="text"] {
-    font: inherit; padding: .55rem .7rem; border: 1px solid var(--line); border-radius: 8px;
-    background: var(--paper); color: var(--ink); max-width: 100%;
-  }
-  .warn {
-    background: #FDF7E8; border: 1px solid var(--gold); border-left-width: 4px;
-    border-radius: 10px; padding: 1.1rem 1.3rem; margin: 1.6rem 0;
-  }
-  .warn h2, .warn h3 { margin-top: 0; }
-  .warn p { color: var(--ink); }
-  .warn p:last-child { margin-bottom: 0; }
+  /* Text/date/search inputs and the shared .warn panel now live in style.css so every
+     page renders them identically. */
   .result-warn {
     background: #FDF7E8; border-left: 4px solid var(--gold); border-radius: 6px;
     padding: .6rem .85rem; font-weight: 600; color: var(--ink);
