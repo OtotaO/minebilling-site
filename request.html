@@ -25,15 +25,15 @@
   <form class="calc" id="req" onsubmit="return false">
     <div class="field">
       <label for="clinic">Practice name</label>
-      <input type="text" id="clinic" autocomplete="organization" placeholder="e.g. Lakeview Family Medicine">
+      <input type="text" id="clinic" maxlength="120" autocomplete="organization" placeholder="e.g. Lakeview Family Medicine">
     </div>
     <div class="field">
       <label for="who">Your name and role</label>
-      <input type="text" id="who" autocomplete="name" placeholder="e.g. Dr. Patel, owner">
+      <input type="text" id="who" maxlength="120" autocomplete="name" placeholder="e.g. Dr. Patel, owner">
     </div>
     <div class="field">
       <label for="state">State</label>
-      <input type="text" id="state" placeholder="e.g. Illinois">
+      <input type="text" id="state" maxlength="60" placeholder="e.g. Illinois">
       <p class="hint">Fee structures differ by state law, so this determines what we can
       offer you in writing.</p>
     </div>
@@ -43,7 +43,7 @@
     </div>
     <div class="field">
       <label for="pms">Practice management / EHR system</label>
-      <input type="text" id="pms" placeholder="e.g. Athena, eCW, Epic, NextGen, Practice Fusion">
+      <input type="text" id="pms" maxlength="120" placeholder="e.g. Athena, eCW, Epic, NextGen, Practice Fusion">
       <p class="hint">This tells us how your claims export will look. If you're not sure,
       leave it blank — your office manager will know.</p>
     </div>
@@ -70,19 +70,38 @@
     </div>
     <div class="field">
       <label for="notes">Anything else worth knowing</label>
-      <input type="text" id="notes" placeholder="optional">
+      <input type="text" id="notes" maxlength="300" placeholder="optional">
     </div>
   </form>
 
   <section class="cta-box">
     <h2>Send the request</h2>
+
+    <div class="warn">
+      <p><strong>Please don't include any patient information in your email</strong> — not
+      names, not dates of birth, not chart numbers. Patient data only moves after a signed
+      Business Associate Agreement, and the scorecard itself is produced from claims and
+      remittance data, not charts.</p>
+    </div>
+
     <p>This opens your email app with everything above filled in. Review it, add anything
     you want, and send.</p>
     <a class="btn" id="send" href="#">Open the email</a>
-    <p class="fineprint">Please don't include any patient information in your email — not
-    names, not dates of birth, not chart numbers. Patient data only moves after a signed
-    Business Associate Agreement, and the scorecard itself is produced from claims and
-    remittance data, not charts.</p>
+    <p class="fineprint">Or email us directly at
+    <a href="mailto:ototao@pm.me">ototao@pm.me</a> — the button just fills that message in
+    for you.</p>
+
+    <!-- Fallback for machines with no registered mail handler (common on shared clinic
+         front-desk PCs), and for bodies too long for a mailto: URL. Revealed by the
+         button's click handler; never hidden content that matters on its own. -->
+    <div id="fallback" hidden>
+      <p class="fineprint" id="fallback-note"></p>
+      <label class="fineprint" for="composed">Your message — copy this into an email to
+      <a href="mailto:ototao@pm.me">ototao@pm.me</a>:</label>
+      <textarea id="composed" readonly rows="12" style="width:100%; margin-top:.4rem;"></textarea>
+      <p><button type="button" class="btn" id="copy">Copy the message</button>
+      <span class="fineprint" id="copy-status" role="status" aria-live="polite"></span></p>
+    </div>
   </section>
 
   <h2>What happens next</h2>
@@ -106,26 +125,108 @@
   </div>
 </footer>
 <script>
-(function () {
-  var ids = ["clinic", "who", "state", "providers", "pms", "billing", "pain", "notes"];
-  var labels = {
-    clinic: "Practice", who: "Contact", state: "State", providers: "Providers",
-    pms: "System", billing: "Billing today", pain: "Biggest problem", notes: "Notes"
+/* ==BEGIN CORE== */
+/* Pure message composition. No DOM access below this marker until ==END CORE==, so the
+   composed message can be tested directly. */
+var ADDRESS = "ototao@pm.me";
+
+/* Windows ShellExecute and Outlook truncate a mailto: URL somewhere around 2,000
+   characters, silently. Below this length we hand off to the mail client; above it we do
+   not navigate at all and show the copyable message instead, because a silently truncated
+   lead is worse than an extra click. */
+var MAILTO_MAX = 1500;
+
+var FIELD_LABELS = {
+  clinic: "Practice", who: "Contact", state: "State", providers: "Providers",
+  pms: "System", billing: "Billing today", pain: "Biggest problem", notes: "Notes"
+};
+var FIELD_ORDER = ["clinic", "who", "state", "providers", "pms", "billing", "pain", "notes"];
+
+/* values: { fieldId: string }. Returns { subject, body, mailto, tooLong, plain }. */
+function composeRequest(values) {
+  var lines = ["Please don't include any patient information in this email.", ""];
+  FIELD_ORDER.forEach(function (id) {
+    var v = String(values[id] === undefined || values[id] === null ? "" : values[id]).trim();
+    if (v) lines.push(FIELD_LABELS[id] + ": " + v);
+  });
+  if (lines.length === 2) lines.push("(no details provided — happy to talk it through)");
+  lines.push("", "I'd like a free billing scorecard.");
+
+  var subject = "Free billing scorecard request";
+  var clinic = String(values.clinic || "").trim();
+  if (clinic) subject += " — " + clinic;
+
+  var body = lines.join("\n");
+  var mailto = "mailto:" + ADDRESS + "?subject=" + encodeURIComponent(subject) +
+    "&body=" + encodeURIComponent(body);
+
+  return {
+    address: ADDRESS,
+    subject: subject,
+    body: body,
+    mailto: mailto,
+    tooLong: mailto.length > MAILTO_MAX,
+    plain: "To: " + ADDRESS + "\nSubject: " + subject + "\n\n" + body
   };
+}
+/* ==END CORE== */
+
+(function () {
+  if (typeof document === "undefined") return;
+
+  var fallback = document.getElementById("fallback");
+  var note = document.getElementById("fallback-note");
+  var composed = document.getElementById("composed");
+  var copyStatus = document.getElementById("copy-status");
+
+  function readValues() {
+    var v = {};
+    FIELD_ORDER.forEach(function (id) {
+      var el = document.getElementById(id);
+      v[id] = el ? el.value : "";
+    });
+    return v;
+  }
+
   document.getElementById("send").addEventListener("click", function (ev) {
     ev.preventDefault();
-    var lines = ["Please don't include any patient information in this email.", ""];
-    ids.forEach(function (id) {
-      var v = (document.getElementById(id).value || "").trim();
-      if (v) lines.push(labels[id] + ": " + v);
-    });
-    if (lines.length === 2) lines.push("(no details provided — happy to talk it through)");
-    lines.push("", "I'd like a free billing scorecard.");
-    var subject = "Free billing scorecard request";
-    var clinic = (document.getElementById("clinic").value || "").trim();
-    if (clinic) subject += " — " + clinic;
-    window.location.href = "mailto:ototao@pm.me?subject=" + encodeURIComponent(subject) +
-      "&body=" + encodeURIComponent(lines.join("\n"));
+    var msg = composeRequest(readValues());
+
+    // Always reveal the copyable version. `window.location.href = "mailto:..."` is a
+    // no-op with no error on a machine with no registered mail handler, which is common
+    // on shared clinic front-desk PCs — without this the lead is lost silently.
+    composed.value = msg.plain;
+    fallback.hidden = false;
+    copyStatus.textContent = "";
+
+    if (msg.tooLong) {
+      note.textContent = "Your answers are longer than an email link can carry reliably, " +
+        "so we have not opened your mail app — some clients would truncate the message " +
+        "without saying so. Copy the text below into an email to " + msg.address + " instead.";
+      composed.focus();
+      return;
+    }
+
+    note.textContent = "If your email app did not open, nothing is lost — copy the text " +
+      "below into an email to " + msg.address + ".";
+    window.location.href = msg.mailto;
+  });
+
+  document.getElementById("copy").addEventListener("click", function () {
+    composed.select();
+    var done = false;
+    try { done = document.execCommand("copy"); } catch (e) { done = false; }
+    if (!done && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(composed.value).then(function () {
+        copyStatus.textContent = "Copied.";
+      }, function () {
+        copyStatus.textContent = "Copy did not work — select the text above and copy it manually.";
+      });
+      return;
+    }
+    copyStatus.textContent = done
+      ? "Copied."
+      : "Copy did not work — select the text above and copy it manually.";
   });
 })();
 </script>

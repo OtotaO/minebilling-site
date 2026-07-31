@@ -5,14 +5,27 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 
-export function loadCore() {
-  const file = path.resolve(import.meta.dirname, "../tools/timely-filing.html");
+function extract(relPath) {
+  const file = path.resolve(import.meta.dirname, "..", relPath);
   const html = fs.readFileSync(file, "utf8");
   const start = html.indexOf("/* ==BEGIN CORE== */");
   const end = html.indexOf("/* ==END CORE== */");
-  if (start === -1 || end === -1) throw new Error("CORE markers not found in timely-filing.html");
-  const src = html.slice(start, end);
+  if (start === -1 || end === -1) throw new Error("CORE markers not found in " + relPath);
+  return html.slice(start, end);
+}
+
+function run(relPath, exportExpr) {
   const ctx = vm.createContext({});
-  vm.runInContext(src + "\n;this.__core = { evaluate: evaluate, PAYERS: PAYERS, findPayer: findPayer };", ctx);
+  vm.runInContext(extract(relPath) + "\n;this.__core = " + exportExpr + ";", ctx);
   return ctx.__core;
+}
+
+export function loadCore() {
+  return run("tools/timely-filing.html",
+    "{ evaluate: evaluate, PAYERS: PAYERS, findPayer: findPayer }");
+}
+
+export function loadRequestCore() {
+  return run("request.html",
+    "{ composeRequest: composeRequest, ADDRESS: ADDRESS, MAILTO_MAX: MAILTO_MAX, FIELD_ORDER: FIELD_ORDER }");
 }
