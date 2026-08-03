@@ -305,3 +305,70 @@ test("42 CFR 424.44(e) is disclosed as a case where this page is more generous t
   assert.match(gaps, /\(i\) Thirty days prior to their effective date if circumstances precluded enrollment in advance of providing services to Medicare beneficiaries; or \(ii\) Ninety days prior to their effective date/);
   assert.match(gaps, /more generous than the regulation/);
 });
+
+/* ------------------------------------------------------------------------
+   A5-04: the Medicare fee-for-service no-appeal-right rule must not be
+   asserted for any other payer.
+
+   CMS Pub 100-04 Ch.1 §70.4 makes an untimely-filing denial "not an initial
+   determination", so it carries no appeal right — but that is Medicare
+   FEE-FOR-SERVICE, claims to a MAC. Medicare ADVANTAGE is a Part C plan with
+   its own organization-determination and appeal process under 42 CFR Part 422
+   Subpart M, and commercial plans have their own. Telling a clinic there is no
+   appeal right when there is would talk them out of an appeal they are
+   entitled to file — harmful in the same direction as an over-generous
+   deadline, which is the bug this whole page exists to avoid.
+
+   Regression guard: reclassifying uhc_ma_noncontracted to kind
+   "mandated_floor" set statutory=true, which previously routed a Medicare
+   ADVANTAGE row into the FFS appeal sentence.
+   ------------------------------------------------------------------------ */
+
+const APPEAL_CLAIM = /no appeal right/i;
+
+test("A5-04a: the no-appeal-right sentence is guarded on medicare_ffs, not on statutory", () => {
+  const src = readFileSync(
+    resolve(import.meta.dirname, "../tools/timely-filing.html"), "utf8");
+
+  // Only user-facing text matters here, so drop // comment lines first -- the guard is
+  // explained in a comment that itself contains the phrase.
+  const code = src.split("\n").filter((l) => !l.trim().startsWith("//")).join("\n");
+
+  // Every rendered occurrence of the claim must name fee-for-service explicitly.
+  let idx = 0, seen = 0;
+  while ((idx = code.indexOf("no appeal right", idx + 1)) !== -1) {
+    seen += 1;
+    const window = code.slice(Math.max(0, idx - 400), idx);
+    assert.ok(
+      window.includes("fee-for-service"),
+      "a 'no appeal right' claim not scoped to fee-for-service at offset " + idx
+    );
+  }
+  assert.ok(seen >= 2, "expected the claim to appear in both result branches, found " + seen);
+});
+
+test("A5-04b: the claim is scoped to fee-for-service wherever it is made", () => {
+  const src = readFileSync(
+    resolve(import.meta.dirname, "../tools/timely-filing.html"), "utf8");
+  // The bare phrase "on Medicare, an untimely-filing denial" was the unscoped form.
+  assert.doesNotMatch(src, /on Medicare, an untimely-filing denial/,
+    "the unscoped Medicare appeal claim is back");
+});
+
+/* ------------------------------------------------------------------------
+   A5-05: quotations must match their source exactly.
+
+   42 CFR 424.44(a)(1) reads "...paragraphs (b) and (e)..." in lower case.
+   An earlier revision emphasised the conjunction by capitalising it INSIDE
+   the quotation marks. Altering text inside quotation marks — even for
+   emphasis — misrepresents the source. Emphasis belongs outside the quote.
+   ------------------------------------------------------------------------ */
+
+test("A5-05: the CFR quotation is not altered for emphasis", () => {
+  const src = readFileSync(
+    resolve(import.meta.dirname, "../tools/timely-filing.html"), "utf8");
+  assert.doesNotMatch(src, /paragraphs \(b\) AND \(e\)/,
+    "the conjunction was capitalised inside a quotation");
+  assert.match(src, /paragraphs \(b\) and \(e\) of this section/,
+    "the verbatim CFR wording is missing");
+});

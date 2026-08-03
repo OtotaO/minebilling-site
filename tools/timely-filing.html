@@ -461,7 +461,7 @@ var PAYERS = [
     date_hint: "Professional claims (CMS-1500 / 837P): the line-item “From” date. Institutional span-date claims (UB-04 / 837I): the “Through” date.",
     limit_text: "42 CFR 424.44(a)(1): “Except as provided in paragraphs (b) and (e) of this section, for services furnished on or after January 1, 2010, the claim must be filed no later than the close of the period ending 1 calendar year after the date of service.” CMS Pub 100-04 Ch.1 §70.1 adds: “Claims having a date of service on February 29 must be filed by February 28 of the following year to be considered timely filed.”",
     clock_starts: "Date of service; measured to the Medicare contractor's RECEIPT date, not your send date.",
-    contract_note: "Regulatory — not negotiable, and it does not vary by clinic. CMS Pub 100-04 Ch.1 §70.4: a denial for untimely filing “does not constitute an initial determination. As such, the determination that a claim was not filed timely is not subject to appeal.” One extension applies automatically: 42 CFR 424.44(c) provides that if the last day of the filing period falls on a “Federal nonworkday (a Saturday, Sunday, legal holiday, or a day which by statute or Executive Order is declared to be a nonworkday for Federal employees), the time is extended to the next succeeding workday” — this page does not apply that extension, so the date shown is the earlier, safer one. Further limited exceptions exist at 42 CFR 424.44(b) (administrative error, retroactive entitlement, State Medicaid recoupment 6+ months after service, retroactive MA/PACE disenrollment) — these are extensions, not a general good-cause escape. It cuts the other way too: paragraph (a)(1) is written “Except as provided in paragraphs (b) AND (e)”, and paragraph (e) restricts claims from newly-enrolled suppliers for services furnished before their billing privileges took effect — see “what this calculator does not know” on this page.",
+    contract_note: "Regulatory — not negotiable, and it does not vary by clinic. CMS Pub 100-04 Ch.1 §70.4: a denial for untimely filing “does not constitute an initial determination. As such, the determination that a claim was not filed timely is not subject to appeal.” One extension applies automatically: 42 CFR 424.44(c) provides that if the last day of the filing period falls on a “Federal nonworkday (a Saturday, Sunday, legal holiday, or a day which by statute or Executive Order is declared to be a nonworkday for Federal employees), the time is extended to the next succeeding workday” — this page does not apply that extension, so the date shown is the earlier, safer one. Further limited exceptions exist at 42 CFR 424.44(b) (administrative error, retroactive entitlement, State Medicaid recoupment 6+ months after service, retroactive MA/PACE disenrollment) — these are extensions, not a general good-cause escape. It cuts the other way too: paragraph (a)(1) is written “Except as provided in paragraphs (b) and (e) of this section” — note that it names paragraph (e) as well as (b) — and paragraph (e) restricts claims from newly-enrolled suppliers for services furnished before their billing privileges took effect — see “what this calculator does not know” on this page.",
     source_url: "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c01.pdf",
     source_name: "CMS Pub 100-04, Medicare Claims Processing Manual, Ch.1 §70",
     as_of: "2026-06-11 (Rev. 13826; §70.4–70.5 Rev. 12909 issued 2024-10-24)"
@@ -565,7 +565,7 @@ var PAYERS = [
   },
   {
     id: "uhc_ma_noncontracted",
-    group: "Commercial",
+    group: "Medicare Advantage",
     label: "UnitedHealthcare Medicare Advantage — NON-contracted providers",
     /* NOT "commercial". UnitedHealthcare publishes this number as one it is REQUIRED to
        allow, not as a negotiated term. Verbatim from the 2026 UnitedHealthcare Care
@@ -1066,7 +1066,17 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     var rem;
     if (res.days_remaining < 0) {
       rem = Math.abs(res.days_remaining) + " day" + (Math.abs(res.days_remaining) === 1 ? "" : "s") +
-            " past the deadline. Do not assume it is appealable — on Medicare, an untimely-filing denial is not an initial determination and carries no appeal right.";
+            " past the deadline. Do not assume it is appealable.";
+      // The no-appeal-right rule is Medicare FEE-FOR-SERVICE only (CMS Pub 100-04 Ch.1
+      // sec.70.4). Medicare ADVANTAGE is a Part C plan with its own organization
+      // determination and appeal process under 42 CFR Part 422 Subpart M, and commercial
+      // plans have their own. Asserting "no appeal right" outside FFS would talk a clinic
+      // out of an appeal it is entitled to file - harmful in the same direction as an
+      // over-generous deadline.
+      if (res.payer_id === "medicare_ffs") {
+        rem += " On Medicare fee-for-service an untimely-filing denial is not an initial " +
+               "determination and carries no appeal right.";
+      }
     } else if (res.days_remaining === 0) {
       rem = "0 days remaining — the deadline is today, and it runs to the payer's receipt of the claim, not to your send time.";
     } else {
@@ -1086,9 +1096,14 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     } else if (res.statutory) {
       setText("r-contractwarn", res.contract_capped
         ? "The " + res.rule_word + " limit for " + res.payer_label + " " + authorityPhrase(entry) + ", " +
-          "so the number you typed cannot lengthen it. The date shown is the published limit. Filing " +
-          "after it is denied as untimely — on Medicare that denial is not an initial determination and " +
-          "carries no appeal right."
+          "so the number you typed cannot lengthen it. The date shown is the published limit." +
+          // Scoped to fee-for-service for the reason given above: Medicare Advantage and
+          // commercial plans carry appeal rights that this sentence would deny.
+          (res.payer_id === "medicare_ffs"
+            ? " A claim filed after it is denied as untimely, and on Medicare fee-for-service " +
+              "that denial is not an initial determination and carries no appeal right."
+            : " A claim filed after it is denied as untimely. Any appeal right you have comes " +
+              "from that plan's own process, not from the Medicare fee-for-service rules.")
         : "The number you typed is SHORTER than the published " + res.published_word + " limit for " +
           res.payer_label + ", which " + authorityPhrase(entry) + ". The earlier of the two is shown. " +
           "A shorter internal deadline is yours to keep; the published limit is the one that denies " +
