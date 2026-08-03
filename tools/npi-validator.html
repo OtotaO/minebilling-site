@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NPI Validator — check a 10-digit NPI checksum instantly | MineBilling</title>
-<meta name="description" content="Free NPI validator: checks the 10-digit National Provider Identifier checksum (Luhn with the 80840 prefix) instantly in your browser, with a link to the official NPPES registry for lookups. No sign-up, no data leaves your device.">
+<title>NPI Validator — check a 10-digit NPI checksum | MineBilling</title>
+<meta name="description" content="Free NPI validator: checks the 10-digit National Provider Identifier checksum in your browser, with a link to the official NPPES registry for lookups.">
+<meta property="og:title" content="NPI checksum validator">
+<meta property="og:description" content="Paste a 10-digit National Provider Identifier and get an instant checksum verdict. Nothing is sent anywhere; confirm assignment in NPPES.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ototao.github.io/minebilling-site/tools/npi-validator.html">
 <link rel="canonical" href="https://ototao.github.io/minebilling-site/tools/npi-validator.html">
 <link rel="stylesheet" href="../style.css">
 </head>
@@ -12,10 +16,17 @@
 <header class="site">
   <a class="brand" href="../">MineBilling<span class="tld">.</span></a>
   <nav class="site">
-    <a href="em-calculator.html">E/M calculator</a>
     <a href="../#free-look">Free scorecard</a>
   </nav>
 </header>
+<nav class="toolbar" aria-label="Free tools">
+  <span>Free tools:</span>
+  <a href="em-calculator.html">E/M level calculator</a>
+  <a href="denial-codes.html">Denial code lookup</a>
+  <a href="timely-filing.html">Timely filing calculator</a>
+  <a href="em-mix.html">E/M visit mix</a>
+  <a href="npi-validator.html" aria-current="page">NPI validator</a>
+</nav>
 <main>
   <h1>NPI checksum validator</h1>
   <p class="lede">Paste a 10-digit National Provider Identifier and get an instant
@@ -34,8 +45,8 @@
     </div>
   </form>
 
-  <div class="result" id="result" hidden>
-    <h3 id="r-head"></h3>
+  <div class="result" id="result" role="status" aria-live="polite" hidden>
+    <h2 id="r-head"></h2>
     <p id="r-detail"></p>
   </div>
 

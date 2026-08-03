@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>2021 E/M Office Visit Level Calculator (99202–99215) — by time or MDM | MineBilling</title>
-<meta name="description" content="Free calculator for 2021 office/outpatient E/M levels 99202–99215: enter total time on the date of the encounter or pick MDM elements (problems, data, risk) and get the supported code, with AMA/CMS thresholds and prolonged-service rules (99417, G2212) cited inline.">
+<title>2021 E/M Level Calculator (99202–99215) | MineBilling</title>
+<meta name="description" content="Free 2021 office-visit E/M level calculator: enter total time or pick the MDM elements and see the supported code, with the AMA thresholds cited inline.">
+<meta property="og:title" content="2021 E/M office-visit level calculator — by time or MDM">
+<meta property="og:description" content="Levels 99202–99215 under the AMA's 2021 rules, with the time bands and the MDM grid cited inline. Runs entirely in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ototao.github.io/minebilling-site/tools/em-calculator.html">
 <link rel="canonical" href="https://ototao.github.io/minebilling-site/tools/em-calculator.html">
 <link rel="stylesheet" href="../style.css">
 </head>
@@ -15,6 +19,14 @@
     <a href="../#free-look">Free scorecard</a>
   </nav>
 </header>
+<nav class="toolbar" aria-label="Free tools">
+  <span>Free tools:</span>
+  <a href="em-calculator.html" aria-current="page">E/M level calculator</a>
+  <a href="denial-codes.html">Denial code lookup</a>
+  <a href="timely-filing.html">Timely filing calculator</a>
+  <a href="em-mix.html">E/M visit mix</a>
+  <a href="npi-validator.html">NPI validator</a>
+</nav>
 <main>
   <h1>2021 E/M office-visit level calculator</h1>
   <p class="lede">Office/outpatient codes 99202–99215 under the AMA's 2021 rules: select
@@ -83,8 +95,8 @@
     </fieldset>
   </form>
 
-  <div class="result" id="result" hidden>
-    <h3 id="r-head"></h3>
+  <div class="result" id="result" role="status" aria-live="polite" hidden>
+    <h2 id="r-head"></h2>
     <p id="r-time"></p>
     <p id="r-mdm"></p>
     <p id="r-note" class="muted"></p>
