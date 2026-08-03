@@ -35,22 +35,26 @@ other. That is how a fact gets fixed in one place only.
 | Site file | Counterpart in medcode | Relationship |
 | --- | --- | --- |
 | `tools/denial-codes.html` (`DENIAL_CODES` array + the static `.qa` cards) | `tools/scorecard/data/denial_codes.json` | Same 86 codes (56 CARC + 30 RARC), same wording. Schema differs: flat array with `code`/`type`/`fix`/`dates` here, vs `{source, carc:{code→entry}, rarc:{…}}` with `typical_fix`/`x12_status`/`x12_dates`/`source_url` there. |
-| `tools/timely-filing.html` (`PAYERS` array + the limits table) | `tools/scorecard/data/timely_filing.json` | Same 13 payers with a verified number. **Arithmetic differs for two of them** — see below. Schema differs: this page adds `id`/`kind`/`rule`/`years`/`group`/`limit_display`/`date_label`/`date_hint`/`source_name`, medcode has `payer`/`scope`/`limit_days` and no authority field at all. medcode also carries 7 further entries whose limit is `null` (no verified number); those are deliberately absent here. |
+| `tools/timely-filing.html` (`PAYERS` array + the limits table) | `tools/scorecard/data/timely_filing.json` | Same 13 payers with a verified number. **Arithmetic differs for one of them** — see below. Schema differs: this page adds `id`/`kind`/`rule`/`years`/`group`/`limit_display`/`date_label`/`date_hint`/`source_name`, medcode has `payer`/`scope`/`limit_days` and no authority field at all. medcode also carries 7 further entries whose limit is `null` (no verified number); those are deliberately absent here. |
 | `tools/em-mix.html` (benchmark figures) | `tools/scorecard/data/em_benchmarks.json` | Same percentages for all six specialties, established / established-excluding-99211 / new. Schema differs: `specialties[]` keyed by `key`/`label` here, vs a flat Family-Practice block plus an `alternate_specialties` object there. This page adds `file_sha256` and `cms_verbatim`; medcode carries the raw counts, denominators and provenance this page drops. |
 
 **The arithmetic divergence, stated exactly.** Verified 2026-08-03 against medcode
-`main` at commit `b5d52a2`:
+`main` at commit `e26e08a`:
 
-- medcode gives Medicare fee-for-service `"limit_days": 365`, and
-  `tools/scorecard/analyze.py` computes `days_remaining = limit_days - days_since` — a flat
-  365-day count.
-- This page gives Medicare fee-for-service `rule: "calendar_years", years: 1` and adds one
-  calendar year, because 42 CFR 424.44(a)(1) is written in years: a 2023-03-01 service is
-  timely through 2024-03-01, which is 366 days. The two therefore disagree by a day across
-  any period containing a February 29.
-- The same split applies to the federal Medicaid ceiling (42 CFR 447.45(d)(1), "12 months"):
-  `limit_days: 365` in medcode, `calendar_years` here.
+- Medicare fee-for-service now **agrees**. medcode carried `"limit_days": 365` until
+  OtotaO/medcode#255, which introduced an explicit `limit_rule` and moved Medicare to
+  `"limit_rule": "calendar_years", "limit_years": 1` — the same reading this page uses,
+  and for the same reason: 42 CFR 424.44(a)(1) is written in years, so a 2023-03-01
+  service is timely through 2024-03-01, which is 366 days.
+- The federal Medicaid ceiling (42 CFR 447.45(d)(1), "12 months") **still diverges**:
+  `"limit_rule": "days", "limit_days": 365` in medcode, `calendar_years` here. The two
+  disagree by a day across any period containing a February 29, with medcode computing
+  the earlier — safer — date.
 - All eleven other payers publish a day count and agree exactly.
+
+One difference remains that is not arithmetic: medcode discloses that 42 CFR 424.44(c)
+extends a deadline landing on a Federal nonworkday to the next succeeding workday, and
+that it does not apply the extension. This page carries the same disclosure.
 
 Which one is right depends on the rule's own wording, and the calendar-year reading is the
 one this page can defend from the regulation. Do not "sync" the two by copying a number
