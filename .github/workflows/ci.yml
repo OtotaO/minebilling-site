@@ -1,0 +1,78 @@
+name: CI
+
+# Runs the full test suite. This repo previously had no CI at all, and
+# `node --test tests/*.test.mjs` on a checkout without Playwright reported
+# "pass 52 / skipped 7" and still exited 0 — a silent skip is exactly how the
+# rendered-page defects hid. So this workflow installs the browser and then
+# refuses to pass if anything skipped.
+#
+# It does NOT deploy. GitHub Pages serves this site from the default branch's
+# built-in source; nothing here publishes, tags or releases.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: node --test (with Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # REQUIRE_PLAYWRIGHT=1 turns "playwright is not resolvable" from a skip
+      # into a failing test (tests/pages.test.mjs), so a broken install cannot
+      # look like a green run.
+      - name: Run the full suite
+        env:
+          REQUIRE_PLAYWRIGHT: '1'
+        run: |
+          set -o pipefail
+          node --test --test-reporter=tap 'tests/*.test.mjs' | tee test-output.tap
+
+      # Belt and braces: independent of the guard above, reject any skipped
+      # test. If a future test is skipped for a missing dependency, this fails.
+      - name: Fail if any test was skipped
+        run: |
+          if ! grep -qE '^# skipped [0-9]+$' test-output.tap; then
+            echo "::error::No '# skipped' summary line in the TAP output — cannot prove nothing was skipped."
+            exit 1
+          fi
+          if grep -qE '^# skipped [1-9][0-9]*$' test-output.tap; then
+            echo "::error::Tests were skipped. A missing dependency must fail CI, not skip."
+            grep -nE '# SKIP' test-output.tap || true
+            exit 1
+          fi
+          if ! grep -qE '^# fail 0$' test-output.tap; then
+            echo "::error::TAP summary does not report '# fail 0'."
+            exit 1
+          fi
+          grep -E '^# (tests|pass|fail|skipped|todo) ' test-output.tap
+
+      - name: Upload TAP output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output-tap
+          path: test-output.tap
+          if-no-files-found: warn
