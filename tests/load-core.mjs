@@ -22,7 +22,8 @@ function run(relPath, exportExpr) {
 
 export function loadCore() {
   return run("tools/timely-filing.html",
-    "{ evaluate: evaluate, PAYERS: PAYERS, findPayer: findPayer }");
+    "{ evaluate: evaluate, PAYERS: PAYERS, UNLISTED: UNLISTED, CHOICES: CHOICES, " +
+    "findPayer: findPayer, contractMayLengthen: contractMayLengthen }");
 }
 
 export function loadRequestCore() {

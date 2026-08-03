@@ -64,21 +64,33 @@
   Everything runs in your browser — no patient data, no sign-up, nothing leaves your device.</p>
 
   <div class="warn">
-    <h2>For commercial payers, your contract is the deadline — not this page</h2>
-    <p>Published national numbers from UnitedHealthcare, Cigna, Aetna and BCBSIL are
+    <h2>Whether your contract sets the deadline depends on the payer — so pick one first</h2>
+    <p><strong>For commercial payers, your contract is the deadline, not this page.</strong>
+    Published national numbers from UnitedHealthcare, Cigna, Aetna and BCBSIL are
     defaults or floors. The executed participation agreement controls, and it can be
     shorter. A self-funded employer group can set a different deadline for one member
     than for the next, and state law can override both. UnitedHealthcare says it plainly:
     <em>“Timely filing limits vary based on state requirements and contracts. Refer to
-    your Agreement for your specific timely filing requirements.”</em></p>
-    <p><strong>So the field below marked <em>my contract says ___ days</em> is the one to
-    use for any commercial payer whose agreement you have in hand.</strong> It overrides
-    the published default.</p>
-    <p>The reverse is true for Medicare and Medicaid: those limits are regulatory or
-    statutory — 42 CFR 424.44(a) for Medicare, 42 CFR 447.45(d)(1) for the federal Medicaid
-    ceiling, state law for the state programs — and no participation agreement lengthens
-    them. If you type a longer number against one of those payers, the calculator keeps the
-    published limit.</p>
+    your Agreement for your specific timely filing requirements.”</em> So the field below
+    marked <em>my contract or program says ___ days</em> is the one to use for any
+    commercial payer whose agreement you have in hand — it overrides the published default.</p>
+    <p><strong>For Medicare and Medicaid the reverse holds.</strong> Those limits are
+    regulatory or statutory — 42 CFR 424.44(a) for Medicare, 42 CFR 447.45(d)(1) for the
+    federal Medicaid ceiling, state law for the state programs — and no participation
+    agreement lengthens them. If you type a longer number against one of those payers, the
+    calculator keeps the published limit and tells you it did.</p>
+    <p><strong>The same applies to a limit the payer publishes as a floor it is required to
+    allow.</strong> One row here is of that kind: UnitedHealthcare Medicare Advantage,
+    non-contracted providers, where UHC's own wording is <em>“we are required to allow 365
+    days from the through date of service for noncontracted health care providers to submit
+    claims for processing.”</em> A floor is not a negotiated term, so a typed number cannot
+    push it out either.</p>
+    <p><strong>Because of that split, the payer field is required.</strong> A number of days
+    with no payer selected cannot be judged — we would not know whether it is allowed to
+    apply — so the calculator will not produce a date until you choose one. If your payer is
+    not in the list, choose one of the two <em>Not listed</em> options at the bottom of the
+    picker to say which kind it is; the calculator will then use your number and say plainly
+    that it is unverified.</p>
   </div>
 
   <form class="calc" id="calc" onsubmit="return false">
@@ -87,9 +99,11 @@
       <select id="payer">
         <option value="">— select a payer —</option>
       </select>
-      <p class="hint">Only payers whose limit we could verify against a primary source
-      appear here. If yours is missing, that is deliberate — see
-      <a href="#gaps">what this calculator does not know</a> and use the contract field below.</p>
+      <p class="hint">Required. Only payers whose limit we could verify against a primary
+      source appear as a named row — if yours is missing, that is deliberate; see
+      <a href="#gaps">what this calculator does not know</a>. Use the <em>Not listed</em>
+      options at the bottom of the picker to say whether it is a commercial plan or a
+      government program, then enter the days from your agreement or from the program's rule.</p>
     </div>
 
     <div class="field">
@@ -100,19 +114,23 @@
     </div>
 
     <fieldset>
-      <legend>My contract says ___ days (commercial payers)</legend>
+      <legend>My contract or program says ___ days</legend>
       <div class="field">
-        <label for="contract">Days allowed by your participation agreement (optional)</label>
+        <label for="contract">Days allowed, from your agreement or the program's own rule (optional)</label>
         <input type="number" id="contract" min="1" max="1095" inputmode="numeric" placeholder="e.g. 90">
         <p class="hint">For a <strong>commercial</strong> payer, enter the number from your
         executed agreement and the calculator will use it instead of the published default,
         counting calendar days from the date above. Leave blank to use the published number.
         If you do not know your contracted limit, that is worth finding out before it costs
         you a claim — it is one of the first things we check in the free scorecard.</p>
-        <p class="hint">For <strong>Medicare and Medicaid</strong> the limit is set by
-        regulation or statute, not by your participation agreement, so a number typed here
-        can only make the deadline <em>earlier</em>, never later. If you type a longer one
-        the calculator keeps the published limit and says so.</p>
+        <p class="hint">For <strong>Medicare, Medicaid</strong> and any limit the payer
+        publishes as a floor it is required to allow, the number is not set by your
+        participation agreement, so a number typed here can only make the deadline
+        <em>earlier</em>, never later. If you type a longer one the calculator keeps the
+        published limit and says so.</p>
+        <p class="hint">This field does nothing on its own. <strong>Select a payer first</strong>
+        — including one of the <em>Not listed</em> options — or the calculator cannot tell
+        whether your number is allowed to apply, and it will decline to show a date.</p>
       </div>
     </fieldset>
   </form>
@@ -207,7 +225,7 @@
       </tr>
       <tr data-id="uhc_ma_noncontracted">
         <th scope="row">UnitedHealthcare Medicare Advantage — NON-contracted</th>
-        <td>365 days from the through date of service</td>
+        <td>365 days from the through date of service — a floor UHC says it is “required to allow,” so a contract cannot lengthen it</td>
         <td>“Through” date of service</td>
         <td><a href="https://www.uhcprovider.com/content/dam/provider/docs/public/admin-guides/2026-UHC-Administrative-Guide.pdf" rel="noopener">2026 UHC Administrative Guide</a> (2026)</td>
       </tr>
@@ -267,6 +285,36 @@
     participating health care providers” — and then tells you the Agreement sets the actual
     number. There is no national participating figure to calculate with. Do not borrow the
     180-day non-participating row for an in-network clinic.</li>
+    <li><strong>Newly-enrolled Medicare suppliers billing for services before their
+    billing privileges took effect.</strong> In this one case the calculator is
+    <em>more generous than the regulation</em>: it applies the ordinary one-year period and
+    knows nothing about your enrollment date. 42 CFR 424.44(a)(1) opens “Except as provided
+    in paragraphs (b) <em>and (e)</em> of this section,” and paragraph (e) reads in full:
+    <em>“As specified in §§ 424.520 and 424.521 of this subpart, there are restrictions on
+    the ability of the following newly-enrolled suppliers to submit claims for items or
+    services furnished prior to the effective date of their Medicare billing privileges:
+    (1) Physician or nonphysician practitioner organizations. (2) Physicians.
+    (3) Nonphysician practitioners. (4) Independent diagnostic testing facilities.”</em>
+    The two cross-referenced sections are where the actual restriction lives: 42 CFR
+    424.520(d)(1) sets the effective date of billing privileges for physicians, non-physician
+    practitioners and their organizations (among others) as <em>“the later of— (i) The date
+    of filing of a Medicare enrollment application that was subsequently approved by a
+    Medicare contractor; or (ii) The date that the provider or supplier first began
+    furnishing services at a new practice location,”</em> and 42 CFR 424.521(a)(1) lets those
+    same suppliers <em>“retrospectively bill for services when the provider or supplier has
+    met all program requirements (including State licensure requirements), and services were
+    provided at the enrolled practice location for up to— (i) Thirty days prior to their
+    effective date if circumstances precluded enrollment in advance of providing services to
+    Medicare beneficiaries; or (ii) Ninety days prior to their effective date if a
+    Presidentially-declared disaster under the Robert T. Stafford Disaster Relief and
+    Emergency Assistance Act, 42 U.S.C. 5121-5206 (Stafford Act) precluded enrollment in
+    advance of providing services to Medicare beneficiaries.”</em> So for a new physician,
+    NP or PA — or a practice at a new location — the binding date can be the retrospective
+    billing window, not the one-year filing period, and it can be far shorter. We have not
+    built that in: it depends on your enrollment application date, your approval, and which
+    of the two windows applies. Quoted from the current eCFR text of 42 CFR 424.44, 424.520
+    and 424.521, retrieved 2026-08-03 (title 42 as issued 2026-07-30); paragraph (e) is
+    identical in the 2023 annual edition linked below.</li>
     <li><strong>Illinois Medicaid managed care.</strong> The 180-day HFS number above is
     fee-for-service only. HealthChoice Illinois MCOs set their own deadlines by contract,
     and a large share of Illinois Medicaid volume is managed care. We did not source those.</li>
@@ -293,8 +341,9 @@
   <h2>Common questions</h2>
 
   <h3>What is the Medicare timely filing limit?</h3>
-  <p>One calendar year from the date of service. 42 CFR 424.44(a): “For services furnished
-  on or after January 1, 2010, the claim must be filed no later than the close of the
+  <p>One calendar year from the date of service. 42 CFR 424.44(a)(1): “Except as provided in
+  paragraphs (b) and (e) of this section, for services furnished on or after January 1,
+  2010, the claim must be filed no later than the close of the
   period ending 1 calendar year after the date of service.” For professional claims the
   clock starts on the line-item “From” date; for institutional span-date claims it starts
   on the “Through” date. Note what CMS says about missing it: a denial for untimely filing
@@ -308,7 +357,11 @@
   last day of the period falls on a “Federal nonworkday (a Saturday, Sunday, legal holiday,
   or a day which by statute or Executive Order is declared to be a nonworkday for Federal
   employees), the time is extended to the next succeeding workday.” This calculator does
-  not apply that extension, so the date it shows is the earlier, safer one.</p>
+  not apply that extension, so the date it shows is the earlier, safer one. Note the other
+  exception named in paragraph (a)(1): paragraph <strong>(e)</strong> restricts claims from
+  newly-enrolled suppliers for services furnished before their Medicare billing privileges
+  took effect, and it runs the other way — it can make the real deadline much shorter than
+  a year. See <a href="#gaps">what this calculator does not know</a>.</p>
 
   <h3>How long do I have to file a claim?</h3>
   <p>It depends entirely on who you are billing, and for commercial payers on what you
@@ -355,6 +408,8 @@
   <p class="fineprint">
     CMS, <a href="https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c01.pdf" rel="noopener">Medicare Claims Processing Manual, Pub 100-04 Ch.1 §70</a> ·
     <a href="https://www.govinfo.gov/content/pkg/CFR-2023-title42-vol3/xml/CFR-2023-title42-vol3-sec424-44.xml" rel="noopener">42 CFR 424.44</a> ·
+    <a href="https://www.ecfr.gov/current/title-42/section-424.520" rel="noopener">42 CFR 424.520</a> ·
+    <a href="https://www.ecfr.gov/current/title-42/section-424.521" rel="noopener">42 CFR 424.521</a> ·
     <a href="https://www.govinfo.gov/content/pkg/CFR-2023-title42-vol4/xml/CFR-2023-title42-vol4-sec447-45.xml" rel="noopener">42 CFR 447.45</a> ·
     <a href="https://hfs.illinois.gov/content/dam/soi/en/web/hfs/sitecollectiondocuments/nipstimelyfiling.pdf" rel="noopener">Illinois HFS non-institutional timely filing</a> ·
     <a href="https://www.tmhp.com/sites/default/files/file-library/resources/provider-manuals/tmppm/pdf-chapters/2026/2026-06-june/1_06_claims_filing.pdf" rel="noopener">Texas Medicaid Provider Procedures Manual Vol.1 §6</a> ·
@@ -379,9 +434,20 @@
 <script>
 /* ==BEGIN CORE== */
 /* Pure logic + data. No DOM access below this marker until ==END CORE==.
-   Data transcribed from /Users/ototao/medcode/tools/scorecard/data/timely_filing.json
-   (research pass R3, primary sources only). Entries whose limit could not be verified
-   as a number are intentionally NOT in this array. */
+   Data transcribed from the medcode scorecard's timely_filing.json (research pass R3,
+   primary sources only), then re-shaped for this page — see README.md, "Where the data
+   comes from". Entries whose limit could not be verified as a number are intentionally
+   NOT in this array.
+
+   `kind` answers exactly ONE question: can a participation agreement LENGTHEN this limit?
+     "commercial"     — yes. The executed agreement controls and can run either way.
+     "government"     — no. Fixed by statute or regulation (42 CFR 424.44(a) for Medicare
+                        FFS, 42 CFR 447.45(d)(1) for the federal Medicaid ceiling, state
+                        law for the state programs).
+     "mandated_floor" — no. The payer itself publishes the number as a minimum it is
+                        REQUIRED to allow, not as a negotiated term. Treating such a floor
+                        as extendable is wrong in the same direction as extending a statute.
+   Nothing else in the page branches on `kind`. */
 var PAYERS = [
   {
     id: "medicare_ffs",
@@ -393,9 +459,9 @@ var PAYERS = [
     limit_display: "1 calendar year from the date of service",
     date_label: "Date of service",
     date_hint: "Professional claims (CMS-1500 / 837P): the line-item “From” date. Institutional span-date claims (UB-04 / 837I): the “Through” date.",
-    limit_text: "42 CFR 424.44(a): “For services furnished on or after January 1, 2010, the claim must be filed no later than the close of the period ending 1 calendar year after the date of service.” CMS Pub 100-04 Ch.1 §70.1 adds: “Claims having a date of service on February 29 must be filed by February 28 of the following year to be considered timely filed.”",
+    limit_text: "42 CFR 424.44(a)(1): “Except as provided in paragraphs (b) and (e) of this section, for services furnished on or after January 1, 2010, the claim must be filed no later than the close of the period ending 1 calendar year after the date of service.” CMS Pub 100-04 Ch.1 §70.1 adds: “Claims having a date of service on February 29 must be filed by February 28 of the following year to be considered timely filed.”",
     clock_starts: "Date of service; measured to the Medicare contractor's RECEIPT date, not your send date.",
-    contract_note: "Regulatory — not negotiable, and it does not vary by clinic. CMS Pub 100-04 Ch.1 §70.4: a denial for untimely filing “does not constitute an initial determination. As such, the determination that a claim was not filed timely is not subject to appeal.” One extension applies automatically: 42 CFR 424.44(c) provides that if the last day of the filing period falls on a “Federal nonworkday (a Saturday, Sunday, legal holiday, or a day which by statute or Executive Order is declared to be a nonworkday for Federal employees), the time is extended to the next succeeding workday” — this page does not apply that extension, so the date shown is the earlier, safer one. Further limited exceptions exist at 42 CFR 424.44(b) (administrative error, retroactive entitlement, State Medicaid recoupment 6+ months after service, retroactive MA/PACE disenrollment) — these are extensions, not a general good-cause escape.",
+    contract_note: "Regulatory — not negotiable, and it does not vary by clinic. CMS Pub 100-04 Ch.1 §70.4: a denial for untimely filing “does not constitute an initial determination. As such, the determination that a claim was not filed timely is not subject to appeal.” One extension applies automatically: 42 CFR 424.44(c) provides that if the last day of the filing period falls on a “Federal nonworkday (a Saturday, Sunday, legal holiday, or a day which by statute or Executive Order is declared to be a nonworkday for Federal employees), the time is extended to the next succeeding workday” — this page does not apply that extension, so the date shown is the earlier, safer one. Further limited exceptions exist at 42 CFR 424.44(b) (administrative error, retroactive entitlement, State Medicaid recoupment 6+ months after service, retroactive MA/PACE disenrollment) — these are extensions, not a general good-cause escape. It cuts the other way too: paragraph (a)(1) is written “Except as provided in paragraphs (b) and (e) of this section” — note that it names paragraph (e) as well as (b) — and paragraph (e) restricts claims from newly-enrolled suppliers for services furnished before their billing privileges took effect — see “what this calculator does not know” on this page.",
     source_url: "https://www.cms.gov/regulations-and-guidance/guidance/manuals/downloads/clm104c01.pdf",
     source_name: "CMS Pub 100-04, Medicare Claims Processing Manual, Ch.1 §70",
     as_of: "2026-06-11 (Rev. 13826; §70.4–70.5 Rev. 12909 issued 2024-10-24)"
@@ -499,9 +565,22 @@ var PAYERS = [
   },
   {
     id: "uhc_ma_noncontracted",
-    group: "Commercial",
+    group: "Medicare Advantage",
     label: "UnitedHealthcare Medicare Advantage — NON-contracted providers",
-    kind: "commercial",
+    /* NOT "commercial". UnitedHealthcare publishes this number as one it is REQUIRED to
+       allow, not as a negotiated term. Verbatim from the 2026 UnitedHealthcare Care
+       Provider Administrative Guide, "Time limits for filing claims" (p.206): “For MA
+       plans, we are required to allow 365 days from the through date of service for
+       noncontracted health care providers to submit claims for processing.” The same
+       paragraph scopes the Agreement-controls sentence to commercial claims only (“For
+       commercial claims, submit clean claims per the time frame listed in your Agreement
+       or per applicable laws”), so the Agreement carve-out does not reach this sentence.
+       A floor is not something a contract lengthens, so the typed-contract field must not
+       be able to push it out. We did NOT locate the CMS provision UHC is referring to —
+       42 CFR 422.520 (prompt payment) contains no 365-day filing requirement — so this
+       page cites only UHC's own wording and claims nothing beyond it. */
+    kind: "mandated_floor",
+    floor_note: "This 365-day figure is a floor UnitedHealthcare publishes for NON-CONTRACTED providers only, and describes as one it is “required to allow.” If your clinic is contracted with the plan, your Agreement applies instead and is usually shorter — do not use this row.",
     rule: "days",
     days: 365,
     limit_display: "365 days from the through date of service",
@@ -509,7 +588,7 @@ var PAYERS = [
     date_hint: "The “through” date of service — the last date on the claim, not the first.",
     limit_text: "“For MA plans, we are required to allow 365 days from the through date of service for noncontracted health care providers to submit claims for processing.”",
     clock_starts: "The “through” date of service.",
-    contract_note: "UHC describes this as a CMS requirement it is “required to allow,” so it is a regulatory floor rather than a negotiated term — but it covers NON-CONTRACTED providers only. A contracted MA provider is governed by its Agreement, which is usually shorter; do not apply 365 days to a contracted clinic. This figure is UnitedHealthcare's own statement and does not transfer to another carrier's Medicare Advantage product.",
+    contract_note: "UHC describes this as something it is “required to allow,” so this page treats it as a floor rather than a negotiated term, and a number typed into the contract field cannot lengthen it. Note what we did NOT verify: UHC does not name the authority, and we could not locate a CMS provision imposing 365 days (42 CFR 422.520, prompt payment by MA organizations, contains no filing deadline) — the citation here is UnitedHealthcare's own published sentence and nothing more. It covers NON-CONTRACTED providers only. A contracted MA provider is governed by its Agreement, which is usually shorter; do not apply 365 days to a contracted clinic. This figure does not transfer to another carrier's Medicare Advantage product.",
     source_url: "https://www.uhcprovider.com/content/dam/provider/docs/public/admin-guides/2026-UHC-Administrative-Guide.pdf",
     source_name: "2026 UnitedHealthcare Care Provider Administrative Guide",
     as_of: "2026 edition"
@@ -618,6 +697,43 @@ var PAYERS = [
   }
 ];
 
+/* Two explicit "not listed" choices. They carry NO published limit, so they can never
+   produce a verified date — they exist so that a typed number of days is always attached
+   to a stated payer TYPE. Leaving the picker blank and typing a number used to compute an
+   unguarded deadline, which silently produced a too-late Medicare date for anyone who
+   meant Medicare and forgot to select it. These are deliberately NOT members of PAYERS:
+   PAYERS is the primary-sourced list, and every entry in it carries a source and an
+   as-of date. */
+var UNLISTED = [
+  {
+    id: "other_commercial",
+    group: "Not listed — say which kind",
+    label: "Other commercial or self-funded plan, not listed above",
+    kind: "commercial",
+    unlisted: true,
+    limit_display: "your agreement sets the limit",
+    date_label: "Date of service",
+    date_hint: "Date of service — unless your agreement names a different trigger. Secondary claims usually run from the primary payer's EOB or payment date, not from the date of service.",
+    clock_starts: "Whatever your agreement says. Commercial payers generally measure to their RECEIPT of the claim, not to the day you press send.",
+    contract_note: "We hold no published limit for this payer, so the date above is only the number you typed — we have not verified it and cannot. For a commercial or self-funded plan the executed participation agreement is the authority; a self-funded employer group can differ from one member to the next, and state law can override both."
+  },
+  {
+    id: "other_government",
+    group: "Not listed — say which kind",
+    label: "Other Medicare, Medicaid or government program, not listed above",
+    kind: "government",
+    unlisted: true,
+    limit_display: "set by regulation or statute",
+    date_label: "Date of service",
+    date_hint: "Date of service — unless the program's own published rule names a different trigger.",
+    clock_starts: "Whatever the program's own rule says. Government programs generally measure to the payer's RECEIPT of the claim.",
+    contract_note: "We hold no verified limit for this program, so the date above is only the number you typed and we cannot check it. Take that number from the program's own published rule, never from a participation agreement: a limit set by regulation or statute is not something an agreement can lengthen. If you meant Medicare fee-for-service, or one of the Medicaid programs in the list, go back and select it — the calculator will then apply the published limit and refuse to push it out."
+  }
+];
+
+/* Everything the picker can hold. Order matters: PAYERS first, then the two fallbacks. */
+var CHOICES = PAYERS.concat(UNLISTED);
+
 var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 var WEEKDAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 var DAY_MS = 86400000;
@@ -686,8 +802,23 @@ function statusFor(daysRemaining) {
 }
 
 function findPayer(id) {
-  for (var i = 0; i < PAYERS.length; i++) if (PAYERS[i].id === id) return PAYERS[i];
+  for (var i = 0; i < CHOICES.length; i++) if (CHOICES[i].id === id) return CHOICES[i];
   return null;
+}
+
+/* The single authority question. Only a "commercial" entry may have its limit lengthened
+   by a typed contract number. */
+function contractMayLengthen(entry) {
+  return !!entry && entry.kind === "commercial";
+}
+
+/* Plain-English clause naming what sets a non-extendable limit, so the rendered warning
+   never claims more than the source supports: "regulation or statute" for a statutory
+   limit, "a floor the payer publishes" for one the payer says it is required to allow. */
+function authorityPhrase(entry) {
+  return entry.kind === "mandated_floor"
+    ? "is a floor the payer itself publishes as one it is “required to allow”, not a term set by a participation agreement"
+    : "is fixed by regulation or statute, not by a participation agreement";
 }
 
 /* evaluate(payerId, startDateString, contractDaysRaw, todayString)
@@ -709,10 +840,37 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
   }
 
   if (!start) return { ok: false, error: "need_date" };
-  if (!entry && contractDays === null) return { ok: false, error: "need_payer_or_contract" };
+
+  /* A payer is now ALWAYS required, even when a contract number is typed. Without one we
+     do not know whether the number may lengthen the limit or not, and guessing in the
+     permissive direction is the expensive guess: a staffer who means Medicare but leaves
+     the picker blank would otherwise get an unguarded, too-late date. The two "not listed"
+     choices exist so that no legitimate payer is locked out by this. */
+  if (!entry) {
+    return {
+      ok: false,
+      error: "need_payer",
+      message: "Select a payer before entering a number of days. Until we know whether the " +
+        "limit is set by your agreement or by regulation we cannot tell whether your number " +
+        "is allowed to apply — for Medicare, Medicaid and other government programs an " +
+        "agreement cannot lengthen the deadline. If your payer is not in the list, pick one " +
+        "of the two “Not listed” options."
+    };
+  }
+
+  var hasPublished = !!entry.rule;
+  if (!hasPublished && contractDays === null) {
+    return {
+      ok: false,
+      error: "need_contract",
+      message: "This payer is not in our list, so there is no published limit to calculate " +
+        "from. Enter the number of days from your participation agreement (commercial) or " +
+        "from the program's own published rule (government)."
+    };
+  }
 
   var publishedRule = null, publishedWord = null;
-  if (entry) {
+  if (hasPublished) {
     publishedRule = entry.rule === "calendar_years"
       ? { rule: "calendar_years", years: entry.years }
       : { rule: "days", days: entry.days };
@@ -731,13 +889,29 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
      unrecoverable: per CMS Pub 100-04 Ch.1 §70.4 an untimely-filing denial "does not
      constitute an initial determination" and is not appealable.
 
-     So for any non-commercial entry we take the EARLIER of the published limit and the
-     typed number. A clinic whose internal rule is shorter is safe to honour; a longer one
-     is ignored and said so out loud. */
+     The same reasoning covers a limit the payer publishes as a FLOOR it is required to
+     allow rather than as a negotiated term (kind "mandated_floor"): a floor is not
+     something an agreement lengthens either, so it is guarded identically.
+
+     So for any entry that is not "commercial" we take the EARLIER of the published limit
+     and the typed number. A clinic whose internal rule is shorter is safe to honour; a
+     longer one is ignored and said so out loud. */
   var basis, rule, ruleWord;
-  var statutory = false;      // a contract number was typed against a non-commercial entry
+  var statutory = false;      // a contract number was typed against a non-extendable entry
   var contractCapped = false; // ...and it was longer than the published limit, so ignored
-  if (contractDays !== null && entry && entry.kind !== "commercial") {
+  var unverifiedLimit = false; // non-extendable, but we hold no published limit to cap with
+  if (!hasPublished) {
+    /* "Not listed": the typed number is all there is. If the clinic said this is a
+       government program we still cannot cap it — we have no verified limit — so we say
+       so loudly rather than implying the date is checked. */
+    basis = "contract";
+    rule = { rule: "days", days: contractDays };
+    ruleWord = contractDays + " calendar days";
+    if (!contractMayLengthen(entry)) {
+      statutory = true;
+      unverifiedLimit = true;
+    }
+  } else if (contractDays !== null && !contractMayLengthen(entry)) {
     statutory = true;
     var contractRule = { rule: "days", days: contractDays };
     if (toUTC(applyRule(start, contractRule)) < toUTC(applyRule(start, publishedRule))) {
@@ -781,10 +955,12 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     basis: basis,
     statutory: statutory,
     contract_capped: contractCapped,
+    unverified_limit: unverifiedLimit,
+    has_published: hasPublished,
     published_word: publishedWord,
-    payer_id: entry ? entry.id : null,
-    payer_kind: entry ? entry.kind : null,
-    payer_label: entry ? entry.label : null,
+    payer_id: entry.id,
+    payer_kind: entry.kind,
+    payer_label: entry.label,
     rule_word: ruleWord,
     counting: rule.rule,
     start: fmtYmd(start),
@@ -809,10 +985,11 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
    "r-remaining","r-contractwarn","r-basis","r-second","r-weekend","r-clock","r-source",
    "r-limittext","r-contractnote"].forEach(function (id) { els[id] = document.getElementById(id); });
 
-  // Build the payer picker from the same array the table is checked against.
+  // Build the payer picker from the same arrays the logic is checked against — the
+  // primary-sourced payers first, then the two "not listed" fallbacks.
   var groups = {};
   var order = [];
-  PAYERS.forEach(function (p) {
+  CHOICES.forEach(function (p) {
     if (!groups[p.group]) { groups[p.group] = []; order.push(p.group); }
     groups[p.group].push(p);
   });
@@ -849,12 +1026,15 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     var res = evaluate(els.payer.value, els.dos.value, els.contract.value, todayString());
 
     if (!res.ok) {
-      if (res.error === "need_date" || res.error === "need_payer_or_contract") {
+      // Nothing typed yet in the field the message would be about: stay quiet.
+      var quiet = res.error === "need_date" ||
+        (res.error === "need_payer" && !String(els.contract.value).trim());
+      if (quiet) {
         els.result.hidden = true;
         return;
       }
       els.result.hidden = false;
-      els["r-head"].textContent = res.error;
+      els["r-head"].textContent = res.message || res.error;
       ["r-date","r-remaining","r-contractwarn","r-basis","r-second","r-weekend","r-clock",
        "r-source","r-limittext","r-contractnote"].forEach(function (id) { setText(id, ""); });
       return;
@@ -868,7 +1048,9 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     els["r-head"].textContent = "";
     els["r-head"].appendChild(head);
     var headTail;
-    if (res.statutory) {
+    if (res.unverified_limit) {
+      headTail = " — " + res.payer_label + " (your number only; we hold no verified limit for it)";
+    } else if (res.statutory) {
       headTail = " — " + res.payer_label + (res.contract_capped
         ? " (published limit; your typed number is longer and cannot apply)"
         : " (using your shorter internal deadline of " + res.rule_word + ")");
@@ -884,7 +1066,17 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     var rem;
     if (res.days_remaining < 0) {
       rem = Math.abs(res.days_remaining) + " day" + (Math.abs(res.days_remaining) === 1 ? "" : "s") +
-            " past the deadline. Do not assume it is appealable — on Medicare, an untimely-filing denial is not an initial determination and carries no appeal right.";
+            " past the deadline. Do not assume it is appealable.";
+      // The no-appeal-right rule is Medicare FEE-FOR-SERVICE only (CMS Pub 100-04 Ch.1
+      // sec.70.4). Medicare ADVANTAGE is a Part C plan with its own organization
+      // determination and appeal process under 42 CFR Part 422 Subpart M, and commercial
+      // plans have their own. Asserting "no appeal right" outside FFS would talk a clinic
+      // out of an appeal it is entitled to file - harmful in the same direction as an
+      // over-generous deadline.
+      if (res.payer_id === "medicare_ffs") {
+        rem += " On Medicare fee-for-service an untimely-filing denial is not an initial " +
+               "determination and carries no appeal right.";
+      }
     } else if (res.days_remaining === 0) {
       rem = "0 days remaining — the deadline is today, and it runs to the payer's receipt of the claim, not to your send time.";
     } else {
@@ -895,37 +1087,55 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
 
     // The contract caveat is the single most important thing on a commercial result,
     // so it renders as a warning band here rather than as fineprint further down.
-    if (res.statutory) {
+    if (res.unverified_limit) {
+      setText("r-contractwarn", "This date comes only from the number you typed. You told us this is a " +
+        "government program, and a limit set by regulation or statute is not something a participation " +
+        "agreement can lengthen — so that number has to come from the program's own published rule, not " +
+        "from a contract. We hold no verified limit for this program, so we cannot check it and this date " +
+        "is not a verified deadline.");
+    } else if (res.statutory) {
       setText("r-contractwarn", res.contract_capped
-        ? "The " + res.rule_word + " limit for " + res.payer_label + " is set by regulation or statute, " +
-          "not by a participation agreement, so the number you typed cannot lengthen it. The date shown " +
-          "is the published limit. Filing after it is denied as untimely — on Medicare that denial is not " +
-          "an initial determination and carries no appeal right."
+        ? "The " + res.rule_word + " limit for " + res.payer_label + " " + authorityPhrase(entry) + ", " +
+          "so the number you typed cannot lengthen it. The date shown is the published limit." +
+          // Scoped to fee-for-service for the reason given above: Medicare Advantage and
+          // commercial plans carry appeal rights that this sentence would deny.
+          (res.payer_id === "medicare_ffs"
+            ? " A claim filed after it is denied as untimely, and on Medicare fee-for-service " +
+              "that denial is not an initial determination and carries no appeal right."
+            : " A claim filed after it is denied as untimely. Any appeal right you have comes " +
+              "from that plan's own process, not from the Medicare fee-for-service rules.")
         : "The number you typed is SHORTER than the published " + res.published_word + " limit for " +
-          res.payer_label + ", which is set by regulation or statute rather than by a participation " +
-          "agreement. The earlier of the two is shown. A shorter internal deadline is yours to keep; " +
-          "the published limit is the one that denies the claim.");
+          res.payer_label + ", which " + authorityPhrase(entry) + ". The earlier of the two is shown. " +
+          "A shorter internal deadline is yours to keep; the published limit is the one that denies " +
+          "the claim.");
     } else if (res.basis === "contract") {
       setText("r-contractwarn", "This date comes from the number you typed, not from a published source. " +
         "We have not verified it and cannot — check it against the executed agreement.");
-    } else if (entry && entry.kind === "commercial") {
+    } else if (entry.kind === "commercial") {
       setText("r-contractwarn", "Contract controls — this is a published default, not your deadline. " +
         "Your participation agreement can be shorter, a self-funded employer group can differ from " +
         "one member to the next, and state law can override both. Enter your contracted number above " +
         "to use it instead.");
+    } else if (entry.floor_note) {
+      setText("r-contractwarn", entry.floor_note);
     } else {
       setText("r-contractwarn", "");
     }
 
     var basisTxt;
-    if (res.statutory && res.basis === "contract") {
+    if (res.unverified_limit) {
+      basisTxt = "Computed as " + res.start_long + " + " + res.rule_word +
+        ". That is YOUR number, not a published one — we have not verified it and cannot, because we " +
+        "hold no limit for this program at all. It overrides nothing, because there is nothing here to " +
+        "override.";
+    } else if (res.statutory && res.basis === "contract") {
       basisTxt = "Computed as " + res.start_long + " + " + res.rule_word +
         ". That is YOUR number, not a published one — we have not verified it and cannot. It does not " +
         "override the published limit for " + entry.label + "; it is simply earlier, so it is the one shown.";
     } else if (res.basis === "contract") {
       basisTxt = "Computed as " + res.start_long + " + " + res.rule_word +
         ". This is YOUR contract number, not a published one — we have not verified it and cannot.";
-      if (entry) basisTxt += " It overrides the published figure for " + entry.label + ".";
+      if (res.has_published) basisTxt += " It overrides the published figure for " + entry.label + ".";
     } else {
       basisTxt = "Computed as " + res.start_long + " + " + res.rule_word + ".";
       basisTxt += res.counting === "calendar_years"
@@ -953,7 +1163,7 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
     // Statutory results keep the source, the published wording and the contract note even
     // when the clinic's shorter internal number produced the displayed date — the published
     // limit is still the one that denies the claim, so it must stay on screen.
-    if ((res.basis === "published" || res.statutory) && entry) {
+    if (res.has_published && (res.basis === "published" || res.statutory)) {
       setText("r-clock", "Clock starts: " + entry.clock_starts);
       els["r-source"].hidden = false;
       els["r-source"].textContent = "";
@@ -967,12 +1177,15 @@ function evaluate(payerId, startStr, contractDaysRaw, todayStr) {
       setText("r-limittext", "Published wording: " + entry.limit_text);
       setText("r-contractnote", (entry.kind === "commercial" ? "Contract controls. " : "") + entry.contract_note);
     } else {
-      setText("r-clock", "");
+      setText("r-clock", entry.clock_starts ? "Clock starts: " + entry.clock_starts : "");
+      // Clear, not just hide: leaving the previous payer's citation in the DOM means a
+      // source line for one payer can outlive the result it belonged to.
+      els["r-source"].textContent = "";
       els["r-source"].hidden = true;
       setText("r-limittext", "");
-      setText("r-contractnote", entry
-        ? "You entered a contract number, so the published figure for " + entry.label + " is not being used. Confirm the number against the executed agreement — and remember a self-funded employer group can differ from the agreement's default."
-        : "No payer selected. This date comes only from the number you typed. For any commercial payer, the executed participation agreement is the authority.");
+      setText("r-contractnote", entry.unlisted
+        ? entry.contract_note
+        : "You entered a contract number, so the published figure for " + entry.label + " is not being used. Confirm the number against the executed agreement — and remember a self-funded employer group can differ from the agreement's default.");
     }
   }
 

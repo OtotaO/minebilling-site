@@ -1,6 +1,11 @@
 /* Rendered-page regression tests. Uses Playwright if it is resolvable; skips (does not
    fail) if it is not, so `node --test 'tests/*.test.mjs'` still works on a bare checkout.
 
+   A silent skip is how a whole class of defect hid, so CI must not tolerate one: set
+   REQUIRE_PLAYWRIGHT=1 and the first test below turns a missing dependency into a
+   failure instead. The CI workflow sets it and additionally rejects any tap "# skipped"
+   count above zero.
+
    A5-01 / A5-06: no page may scroll horizontally at 320, 360 or 768 CSS pixels.
    A5-07: result panes that change without a reload must be announced, and the document
           must not skip a heading level.
@@ -32,6 +37,17 @@ try {
 }
 
 const opts = chromium ? {} : { skip: "playwright is not installed" };
+
+/* Deliberately NOT gated by `opts` — this is the test that must fail when the others skip. */
+test("the rendered-page suite is not silently skipping (REQUIRE_PLAYWRIGHT)", () => {
+  if (process.env.REQUIRE_PLAYWRIGHT !== "1") return;
+  assert.ok(
+    chromium,
+    "REQUIRE_PLAYWRIGHT=1 but playwright is not resolvable, so every rendered-page test " +
+      "below would have skipped and the run would still have exited 0. Run " +
+      "`npm ci && npx playwright install --with-deps chromium`."
+  );
+});
 
 test("A5-01/A5-06: no page scrolls horizontally at 320, 360 or 768px", opts, async () => {
   const browser = await chromium.launch();
@@ -210,7 +226,7 @@ test("A5-05: the patient-information warning outranks the fineprint on both entr
   }
 });
 
-test("A5-02: the rendered result never claims a contract overrides a government limit", opts, async () => {
+test("A5-02: the rendered result never claims a contract overrides a non-negotiable limit", opts, async () => {
   const browser = await chromium.launch();
   try {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -219,24 +235,89 @@ test("A5-02: the rendered result never claims a contract overrides a government 
     const ids = await page.$$eval("#payer option", (os) =>
       os.map((o) => o.value).filter(Boolean)
     );
-    const government = await page.evaluate(() =>
+    // Every entry that carries a published limit a contract may NOT lengthen.
+    const guarded = await page.evaluate(() =>
       PAYERS.filter((p) => p.kind !== "commercial").map((p) => p.id)
     );
+    const kinds = await page.evaluate(() =>
+      Object.fromEntries(CHOICES.map((p) => [p.id, p.kind]))
+    );
+    assert.ok(guarded.includes("uhc_ma_noncontracted"), "the UHC MA floor must be guarded");
     await page.fill("#dos", "2026-01-15");
     await page.fill("#contract", "400");
     for (const id of ids) {
       await page.selectOption("#payer", id);
       const txt = await page.textContent("#result");
-      if (government.includes(id)) {
+      if (!guarded.includes(id)) continue;
+      assert.ok(
+        !/overrides the published figure/.test(txt),
+        `${id}: result still says a contract overrides the published figure`
+      );
+      assert.ok(
+        /cannot lengthen it/.test(txt),
+        `${id}: result does not say the typed number cannot lengthen the limit`
+      );
+      if (kinds[id] === "government") {
         assert.ok(
-          !/overrides the published figure/.test(txt),
-          `${id}: result still says a contract overrides the published figure`
-        );
-        assert.ok(
-          /set by regulation or statute/.test(txt),
+          /fixed by regulation or statute/.test(txt),
           `${id}: result does not explain that the limit is regulatory`
         );
+      } else {
+        assert.ok(
+          /required to allow/.test(txt),
+          `${id}: result does not explain that the limit is a published floor`
+        );
       }
+    }
+    await ctx.close();
+  } finally {
+    await browser.close();
+  }
+});
+
+/* Gap 1: the guard used to engage only once a payer was selected, so a staffer who meant
+   Medicare but left the picker blank got an unguarded date from the typed number. */
+test("A5-02b: a typed number with the payer left blank renders no date, only a prompt", opts, async () => {
+  const browser = await chromium.launch();
+  try {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto(pathToFileURL(path.join(ROOT, "tools/timely-filing.html")).href);
+    await page.fill("#dos", "2026-01-15");
+    await page.fill("#contract", "400");
+    assert.equal(await page.inputValue("#payer"), "", "the picker must start unselected");
+
+    const txt = await page.textContent("#result");
+    assert.match(txt, /Select a payer/, "the blank-payer prompt is not shown");
+    assert.equal(
+      await page.textContent("#r-date"),
+      "",
+      "a deadline was rendered with no payer selected"
+    );
+    // 2026-01-15 + 400 days. If this ever appears the unguarded path is back.
+    assert.ok(!/February 19, 2027/.test(txt), "an unguarded deadline was rendered");
+
+    // The two fallbacks are what keeps that from locking a real payer out. Each is
+    // reached from a payer that DOES have a citation, so a stale "Source:" line left
+    // over from the previous selection would be caught rather than passing by luck.
+    for (const [id, expect] of [
+      ["other_commercial", /participation agreement is the authority/],
+      ["other_government", /never from a participation agreement/]
+    ]) {
+      await page.selectOption("#payer", "medicare_ffs");
+      assert.match(
+        await page.textContent("#result"),
+        /Source:/,
+        "precondition: a sourced payer must render a source line"
+      );
+      await page.selectOption("#payer", id);
+      const t = await page.textContent("#result");
+      assert.match(t, /February 19, 2027/, `${id}: the typed number should now be used`);
+      assert.match(t, expect, `${id}: the unverified caveat is missing`);
+      assert.ok(
+        !/Source:/.test(t),
+        `${id}: a source line was rendered for a payer we hold no source for`
+      );
     }
     await ctx.close();
   } finally {
