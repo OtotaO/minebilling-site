@@ -51,10 +51,17 @@
   </div>
 
   <h2>Why claims bounce on NPI errors</h2>
-  <p>A transposed digit produces an NPI that fails the checksum — clearinghouses and
+  <p>Most keying errors produce an NPI that fails the checksum — clearinghouses and
   payers reject these before adjudication, and the denial often surfaces days later as
   a batch rejection. Validating at data-entry time is the cheapest denial you'll ever
   prevent.</p>
+
+  <p>Know what the check digit cannot see. It is a Luhn mod-10 checksum, and Luhn does
+  not catch every transposition. It catches a swap of two <em>adjacent</em> digits
+  unless those digits are a 0 and a 9; it catches <em>no</em> swap of two digits an even
+  number of places apart. So a passing checksum means the number is well formed, not
+  that it is the right provider — always confirm the NPI is actually assigned, to the
+  provider you mean, in the NPPES registry.</p>
 
   <section class="cta-box">
     <h2>Denials costing you more than typos?</h2>
@@ -78,6 +85,9 @@
   var head = document.getElementById("r-head");
   var detail = document.getElementById("r-detail");
 
+  /* ==BEGIN CORE== */
+  /* Pure logic. No DOM access below this marker until ==END CORE==, so the checksum
+     can be tested in node without a browser. */
   function validNpi(raw) {
     var n = (raw || "").replace(/\D/g, "");
     if (n.length !== 10) return { ok: false, why: "length", digits: n.length };
@@ -92,6 +102,7 @@
     var check = (10 - (total % 10)) % 10;
     return { ok: check === +n[9], why: "checksum", expected: check, got: +n[9] };
   }
+  /* ==END CORE== */
 
   input.addEventListener("input", function () {
     var raw = input.value;

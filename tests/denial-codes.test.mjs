@@ -130,3 +130,40 @@ test("no authored plain/fix text contradicts an X12 'Use only with Group Codes P
     }
   }
 });
+
+/* The "what to do first" list is authored prose, not code data — so the guard above
+   could not see it. An audit before the 2026-08-10 call found it telling clinics that
+   CARC 1, 2, 3 and 45 were "money that was never yours". Deductible, coinsurance and
+   copay are patient-responsibility balances the clinic IS still owed, and the same
+   page's own per-code guidance says "Bill the patient for this balance." Same harmful
+   direction as the CARC 45 group-code defect fixed on 2026-08-03, in a different
+   sentence on the same page. */
+
+test("the adjustments bullet does not call patient-responsibility balances 'not yours'", () => {
+  const text = html.replace(/\s+/g, " ");
+  assert.ok(
+    !/money that was never yours/i.test(text),
+    "the unqualified 'never yours' claim is back — it is false for CARC 1, 2 and 3, " +
+    "which are patient-responsibility balances the clinic is still owed"
+  );
+});
+
+test("the adjustments bullet distinguishes CO-45 from PR-45 and keeps 1/2/3 collectable", () => {
+  const text = html.replace(/\s+/g, " ");
+  assert.match(
+    text,
+    /patient-responsibility balances you are still owed/i,
+    "the list must say that CARC 1, 2 and 3 move to the patient rather than off the books"
+  );
+  assert.match(
+    text,
+    /genuinely not\s*(?:<\/strong>)?\s*yours when the line carries group code/i,
+    "CARC 45 must be conditioned on the group code, not written off unconditionally"
+  );
+  assert.match(text, /PR-45/, "the PR-45 case must be named");
+  assert.match(
+    text,
+    /balance-billing law/i,
+    "the PR-45 caveat must survive — billing the patient is subject to state law"
+  );
+});
