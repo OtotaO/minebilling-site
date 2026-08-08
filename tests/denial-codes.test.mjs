@@ -36,9 +36,9 @@ const ALIASES = CODES.filter((e) => e.base);
 const DISTINCT = CODES.filter((e) => !e.base);
 
 test("the embedded code table still parses and still carries the alias entries", () => {
-  assert.equal(CODES.length, 86);
+  assert.equal(CODES.length, 89);
   assert.equal(ALIASES.length, 4);
-  assert.equal(DISTINCT.length, 82);
+  assert.equal(DISTINCT.length, 85);
   assert.deepEqual(ALIASES.map((e) => e.code).sort(), ["CO-4", "PR-1", "PR-2", "PR-3"]);
   // every alias points at a code that is itself present
   for (const a of ALIASES) {
@@ -95,7 +95,7 @@ test("A5-09: the page advertises the distinct-code count, not the row count", ()
     html.includes(DISTINCT.length + " distinct codes are on"),
     "fineprint count is wrong"
   );
-  assert.ok(!/Show all 86 codes/.test(html), "the old 86 count is still on the page");
+  assert.ok(!/Show all 8[26] codes/.test(html), "an old code count is still on the page");
   assert.ok(!/\b86 codes are on this page\b/.test(html), "the old 86 count is still in the fineprint");
 });
 
@@ -103,7 +103,7 @@ test("A5-09: the CARC/RARC split quoted in the fineprint matches the data", () =
   const carc = DISTINCT.filter((e) => e.type === "CARC").length;
   const rarc = DISTINCT.filter((e) => e.type === "RARC").length;
   assert.equal(carc, 52);
-  assert.equal(rarc, 30);
+  assert.equal(rarc, 33);
   assert.ok(html.includes("(" + carc + " CARC and " + rarc + " RARC)"));
 });
 
@@ -152,8 +152,18 @@ test("the adjustments bullet distinguishes CO-45 from PR-45 and keeps 1/2/3 coll
   const text = html.replace(/\s+/g, " ");
   assert.match(
     text,
-    /patient-responsibility balances you are still owed/i,
-    "the list must say that CARC 1, 2 and 3 move to the patient rather than off the books"
+    /patient money, not write-offs/i,
+    "the list must say that CARC 1, 2 and 3 are not write-offs"
+  );
+  // This guard used to pin the sentence "patient-responsibility balances you are still
+  // owed", which was unconditional and therefore wrong: for a Qualified Medicare
+  // Beneficiary, federal law forbids billing the patient for Part A/B cost sharing, and
+  // the Medicare remit STILL shows PR-1/PR-2/PR-3 with dollar amounts (CMS retained that
+  // display so state Medicaid can process the crossover). Only Alert RARC N781/N782/N783
+  // flags it. A regression guard can enshrine a defect; this one did.
+  assert.ok(
+    !/patient-responsibility balances you are still owed/i.test(text),
+    "the unconditional 'still owed' sentence is back - it is false for QMB dual-eligibles"
   );
   assert.match(
     text,
@@ -166,4 +176,40 @@ test("the adjustments bullet distinguishes CO-45 from PR-45 and keeps 1/2/3 coll
     /balance-billing law/i,
     "the PR-45 caveat must survive — billing the patient is subject to state law"
   );
+});
+
+/* QMB (Qualified Medicare Beneficiary) protections. Federal law prohibits billing a QMB
+   for Medicare Part A/B deductibles, coinsurance or copays. The trap the 8/8 audit found:
+   the remittance still shows group code PR with a dollar amount for these patients, so the
+   page's own "check the group code" rule cannot detect it — only Alert RARC N781/N782/N783
+   can. Sources: CMS MLN7936176; CMS QMB RA/EOB memo (2018-04-03). */
+
+test("the QMB alert remark codes are in the dataset and say do-not-bill", () => {
+  for (const code of ["N781", "N782", "N783"]) {
+    const e = CODES.find((c) => c.code === code);
+    assert.ok(e, `${code} is missing from the dataset`);
+    assert.equal(e.type, "RARC");
+    assert.match(e.meaning, /Qualified Medicare Beneficiary/i);
+    assert.match(e.fix, /do not bill the patient/i, `${code} must say do not bill`);
+    assert.match(e.fix, /refund/i, `${code} must mention refunding what was collected`);
+  }
+});
+
+test("CARC 1, 2 and 3 carry the QMB exception rather than a bare 'bill the patient'", () => {
+  for (const code of ["1", "2", "3", "PR-1", "PR-2", "PR-3"]) {
+    const e = CODES.find((c) => c.code === code && c.type === "CARC");
+    assert.ok(e, `${code} missing`);
+    assert.match(
+      e.fix,
+      /N781|Qualified Medicare Beneficiary/i,
+      `${code} tells the biller to bill the patient with no QMB exception`
+    );
+  }
+});
+
+test("the page warns that the group code alone cannot identify a QMB", () => {
+  const text = html.replace(/\s+/g, " ");
+  assert.match(text, /N781, N782 or N783/, "the alert codes must be named in the prose");
+  assert.match(text, /still reads PR/i, "the page must say the line still reads PR for a QMB");
+  assert.match(text, /group code alone cannot tell you a QMB/i);
 });
