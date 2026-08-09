@@ -213,3 +213,32 @@ test("the page warns that the group code alone cannot identify a QMB", () => {
   assert.match(text, /still reads PR/i, "the page must say the line still reads PR for a QMB");
   assert.match(text, /group code alone cannot tell you a QMB/i);
 });
+
+/* Nothing may be presented as X12's own wording unless it was read at the X12 source.
+   The QMB alert codes were added on 2026-08-07 with descriptions written from a search
+   summary, and shipped under the "Official X12 text" label inside quotation marks — the
+   sixth fabricated-quotation defect in this project. Entries whose wording has not been
+   verified at source must carry source:"cms" and are rendered without quote marks under
+   an honest label. */
+
+test("entries not read at the X12 source are not presented as X12 wording", () => {
+  const cms = CODES.filter((e) => e.source === "cms");
+  assert.ok(cms.length >= 3, "the QMB alert codes should be marked as CMS-derived");
+  for (const e of cms) {
+    assert.doesNotMatch(
+      e.meaning,
+      /^Alert: No (deductible|coinsurance|co-payment) may be collected/,
+      `${e.code} still carries the unverified verbatim-looking string`
+    );
+    assert.equal(e.dates, "", `${e.code} publishes a start date that was never verified`);
+  }
+});
+
+test("the renderer only quotes text it labels as X12's own", () => {
+  assert.match(
+    html,
+    /if \(e\.source === "cms"\)/,
+    "the card renderer no longer distinguishes sourced from described text"
+  );
+  assert.match(html, /our description, from CMS guidance/);
+});
