@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://ototao.github.io/minebilling-site/sitemap.xml
+Sitemap: https://minebilling.com/sitemap.xml
