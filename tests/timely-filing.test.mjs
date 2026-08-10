@@ -372,3 +372,61 @@ test("A5-05: the CFR quotation is not altered for emphasis", () => {
   assert.match(src, /paragraphs \(b\) and \(e\) of this section/,
     "the verbatim CFR wording is missing");
 });
+
+/* 42 CFR 424.44(c): a filing period whose last day falls on a Federal nonworkday "is
+ * extended to the next succeeding workday" — mandatory and self-executing, needing no
+ * CMS determination (unlike every (b) exception).
+ *
+ * The page deliberately DISPLAYS the unextended date, because while the deadline is in
+ * the future the earlier date is the safer one to work to. That reasoning inverts once the
+ * date has passed: an audit on 2026-08-08 found the tool telling a biller that a Medicare
+ * claim whose deadline fell on a Saturday was "1 day past the deadline" and carried "no
+ * appeal right" — while it was still filable. That is the give-up-money direction, on the
+ * one tool whose entire job is a date.
+ *
+ * Weekends only. Federal holidays are not enumerated, so the true extension can be LATER
+ * than what is computed here and never earlier, which is the safe direction to err.
+ */
+
+test("424.44(c): a weekend deadline extends to the next workday", () => {
+  // 2026-08-08 is a Saturday, 2026-08-09 a Sunday.
+  assert.equal(evaluate("medicare_ffs", "2025-08-08", "", "2026-08-09").workday_extension_days, 2);
+  assert.equal(evaluate("medicare_ffs", "2025-08-09", "", "2026-08-10").workday_extension_days, 1);
+  // A weekday deadline gets no extension.
+  assert.equal(evaluate("medicare_ffs", "2025-08-06", "", "2026-08-07").workday_extension_days, 0);
+});
+
+test("a claim inside the nonworkday extension is not yet out of time", () => {
+  // Saturday deadline: still filable Sunday and Monday, out of time on Tuesday.
+  for (const [today, past] of [["2026-08-09", 1], ["2026-08-10", 2]]) {
+    const r = evaluate("medicare_ffs", "2025-08-08", "", today);
+    assert.equal(Math.abs(r.days_remaining), past);
+    assert.ok(
+      Math.abs(r.days_remaining) <= r.workday_extension_days,
+      `${today}: should still be inside the extension`
+    );
+  }
+  const dead = evaluate("medicare_ffs", "2025-08-08", "", "2026-08-11");
+  assert.ok(Math.abs(dead.days_remaining) > dead.workday_extension_days);
+});
+
+test("the page tells the reader a weekend-extended claim is still filable, and does not tell them not to appeal", () => {
+  const t = readFileSync(
+    resolve(import.meta.dirname, "../tools/timely-filing.html"), "utf8"
+  ).replace(/\s+/g, " ");
+  assert.match(t, /still filable today/i, "the extension branch must say the claim is likely still filable");
+  assert.match(t, /do not write it off/i);
+  assert.match(
+    t,
+    /if the next workday is itself a Federal holiday the extension runs/i,
+    "holidays are not modelled, so the page must say the extension can run further"
+  );
+  // The no-appeal-right sentence must be unreachable while the claim may still be filable.
+  const iExt = t.indexOf("still filable today");
+  const iNoAppeal = t.indexOf("carries no appeal right");
+  assert.ok(iExt !== -1 && iNoAppeal !== -1);
+  assert.ok(
+    iExt < iNoAppeal,
+    "the no-appeal-right sentence must sit in the later branch, after the extension branch"
+  );
+});
