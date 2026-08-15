@@ -117,9 +117,9 @@
       code. The request count does not move.</li>
       <li>Open <strong>Application → Storage</strong>. Cookies, Local Storage and Session
       Storage are all empty.</li>
-      <li><strong>View source</strong> and search for <strong>script src</strong>. There are
-      no external scripts to find — every script here is inline, so there is nothing being
-      pulled in from somewhere else.</li>
+      <li><strong>View source</strong> and look at the script tags. Not one of them has a
+      <strong>src</strong> attribute — every script here is written into the page itself, so
+      there is nothing being pulled in from anywhere else.</li>
     </ol>
     <p>And it stays that way by force rather than by good intentions: a test in the public
     repository loads every page in a real browser, records every request it makes, and
