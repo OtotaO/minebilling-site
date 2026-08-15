@@ -103,6 +103,36 @@
       official NPPES registry.</p>
     </article>
   </div>
+
+  <section id="verify">
+    <h2>Don't take my word for it — check</h2>
+    <p>Every page on this site loads from exactly one host: the one it is served from.
+    No analytics, no tag manager, no web fonts, no CDN, no chat widget, no error reporter,
+    no pixel of any kind. That isn't a policy I'm asking you to trust. It takes about a
+    minute to confirm in your own browser:</p>
+    <ol class="steps">
+      <li>Press <strong>F12</strong>, open the <strong>Network</strong> tab, and reload this
+      page. Every row's domain is this site's own.</li>
+      <li>Stay there and <strong>use one of the tools</strong> — type an NPI, a date, a denial
+      code. The request count does not move.</li>
+      <li>Open <strong>Application → Storage</strong>. Cookies, Local Storage and Session
+      Storage are all empty.</li>
+      <li><strong>View source</strong> and search for <strong>script src</strong>. There are
+      no external scripts to find — every script here is inline, so there is nothing being
+      pulled in from somewhere else.</li>
+    </ol>
+    <p>And it stays that way by force rather than by good intentions: a test in the public
+    repository loads every page in a real browser, records every request it makes, and
+    <strong>fails the build</strong> if a single one leaves this origin, or if any page sets
+    a cookie. You can read it —
+    <a href="https://github.com/OtotaO/minebilling-site/blob/main/tests/no-tracking.test.mjs">no-tracking.test.mjs</a>
+    — and yes, it contains the names of the trackers, because that is the list it hunts for.</p>
+    <p class="fineprint">Two honest limits. This site is hosted by GitHub, and like any web
+    host it receives every request, including your IP address, whatever the page itself
+    contains — the claim is that the page fetches from no one else, not that nobody sees the
+    visit. And the scorecard request form opens your own mail application: the page transmits
+    nothing, you send it yourself.</p>
+  </section>
 </main>
 <footer class="site">
   <div class="inner">

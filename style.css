@@ -107,3 +107,9 @@ legend { font-weight: 700; padding: 0 .4rem; }
 .result .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; color: var(--teal-deep); }
 .result p { margin: .35rem 0 0; font-size: .92rem; }
 .muted { color: var(--ink-2); }
+
+/* The "check it yourself" steps on the home page. Numbered because they are meant to be
+   followed in order in a browser's devtools, not skimmed. */
+ol.steps { max-width: 62ch; padding-left: 1.25rem; margin: 0 0 1.2rem; }
+ol.steps li { margin-bottom: .55rem; color: var(--ink-2); font-size: .96rem; line-height: 1.55; }
+#verify p { max-width: 62ch; }

@@ -165,6 +165,34 @@ test("no tracker snippet is present in any served page, firing or not", () => {
   }
 });
 
+/* The home page now tells a reader, in so many words, to view source and search for
+   "script src" — and promises they will find nothing. `seo.test.mjs` only rejects scripts
+   whose src is an absolute http(s) URL, so a same-origin `<script src="app.js">` would keep
+   that test green while making the published instruction wrong. The site makes the claim, so
+   the suite has to hold the claim. */
+test("every script on every page is inline, as the home page tells readers to verify", () => {
+  for (const p of PAGES) {
+    const html = fs.readFileSync(path.join(ROOT, p), "utf8");
+    const withSrc = [...html.matchAll(/<script\b[^>]*\bsrc\s*=/gi)].map((m) => m[0]);
+    assert.deepEqual(
+      withSrc,
+      [],
+      `${p} has an external script, but the home page tells visitors "search for script src" ` +
+        `and promises zero hits: ${withSrc.join(", ")}`
+    );
+  }
+});
+
+test("the home page's verify section does not contain the tokens it tells readers to hunt", () => {
+  // Self-defeating copy check. If the page printed a tracker name as an example, a reader
+  // searching the source for it would get a hit on our own prose and reasonably conclude the
+  // site tracks them. This nearly shipped.
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const section = html.slice(html.indexOf('id="verify"'));
+  const hits = TRACKER_TOKENS.filter((t) => section.toLowerCase().includes(t.toLowerCase()));
+  assert.deepEqual(hits, [], `the verify section names tracker token(s) verbatim: ${hits.join(", ")}`);
+});
+
 test("no form on the site posts to another origin", () => {
   for (const p of PAGES) {
     const html = fs.readFileSync(path.join(ROOT, p), "utf8");
