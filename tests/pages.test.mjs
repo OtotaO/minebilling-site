@@ -14,6 +14,7 @@
 */
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -322,5 +323,32 @@ test("A5-02b: a typed number with the payer left blank renders no date, only a p
     await ctx.close();
   } finally {
     await browser.close();
+  }
+});
+
+/* Every tool form must refuse a native submit.
+ *
+ * Found 2026-08-14: em-calculator.html was the only one of the six forms across both sites
+ * without `onsubmit="return false"`. Pressing Enter in the minutes field submitted it,
+ * producing a same-origin GET and a full reload that wiped everything entered. Not a privacy
+ * problem — no field on that page carries a `name`, so the query string was a bare `?` and
+ * nothing typed reached a server log — but it cost a user their work on the tool a physician
+ * is most likely to try first.
+ *
+ * These are calculators. None of them has anywhere to submit to; a native submit is always a
+ * bug. Asserted here so a new tool cannot ship without the guard.
+ */
+test("every form refuses a native submit and posts nowhere", () => {
+  for (const p of PAGES) {
+    const html = fs.readFileSync(path.join(ROOT, p), "utf8");
+    for (const m of html.matchAll(/<form\b[^>]*>/gi)) {
+      const tag = m[0];
+      assert.match(
+        tag,
+        /onsubmit\s*=\s*"return false;?"/i,
+        `${p}: form without a submit guard — pressing Enter reloads and wipes input: ${tag}`
+      );
+      assert.doesNotMatch(tag, /\baction\s*=/i, `${p}: form has an action attribute: ${tag}`);
+    }
   }
 });
