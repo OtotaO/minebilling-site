@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const BASE = "https://ototao.github.io/minebilling-site/";
+const BASE = "https://minebilling.com/";
 const PAGES = {
   "index.html": BASE,
   "request.html": BASE + "request.html",

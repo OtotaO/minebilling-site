@@ -120,7 +120,7 @@ those markers, and keep DOM access out of them.
 ## Deployment
 
 Deployed via GitHub Pages from `main`:
-https://ototao.github.io/minebilling-site/
+https://minebilling.com/
 
 When pointing minebilling.com here: add a `CNAME` file containing the domain,
 set the DNS (CNAME `www` → `ototao.github.io`, apex A records per GitHub Pages
